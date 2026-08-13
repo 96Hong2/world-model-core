@@ -1,0 +1,288 @@
+/* 앱 골격: 좌측 레일 + 화면. 페이지 내용은 각 화면 CSS 가 맡는다. */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  height: 100%;
+  background: var(--ground);
+}
+
+/* ------------------------------------------------------------------ 레일 */
+
+/* 오로라웍스 는 테마와 무관하게 사이드바를 어둡게 고정한다(제품군 DESIGN.md).
+ * WM 이 그 제품군의 일부로 보이게 같은 골격을 쓴다. */
+.rail {
+  position: relative;
+  z-index: var(--z-rail);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-3) 0 var(--sp-3);
+  background: var(--rail);
+  color: var(--ink-on-dark);
+}
+
+.rail-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: var(--sp-3);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.rail-mark:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.rail-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 46px;
+  padding: var(--sp-2) 0 6px;
+  border-radius: var(--r-md);
+  color: rgba(236, 238, 246, 0.72);
+  text-decoration: none;
+  transition:
+    background var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out);
+}
+
+.rail-item:hover {
+  background: var(--rail-hover);
+  color: #fff;
+}
+
+/* 지금 있는 자리는 색·굵기·왼쪽 표시 세 가지로 알린다(색만으로 알리지 않는다). */
+.rail-item[aria-current="page"] {
+  background: var(--rail-active);
+  color: #fff;
+}
+
+.rail-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  border-radius: var(--r-full);
+  background: #fff;
+}
+
+.rail-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.rail-label {
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 550;
+  letter-spacing: -0.02em;
+}
+
+.rail-item[aria-current="page"] .rail-label {
+  font-weight: 700;
+}
+
+.rail-split {
+  width: 24px;
+  height: 1px;
+  margin: var(--sp-2) 0;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.rail-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.rail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: rgba(236, 238, 246, 0.72);
+  cursor: pointer;
+  transition:
+    background var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out);
+}
+
+.rail-btn:hover {
+  background: var(--rail-hover);
+  color: #fff;
+}
+
+.rail-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ------------------------------------------------------------------ 화면 */
+
+/* 본문 랜드마크. 레일과 함께 격자의 한 칸이 되고, 안의 .screen 이 높이를 채운다. */
+.screen-host {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  outline: none;
+}
+
+.screen-host > .screen {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 키보드로만 나타나는 건너뛰기 링크. 마우스 사용자에게는 보이지 않는다. */
+.skip-link {
+  position: absolute;
+  left: var(--sp-2);
+  top: -100px;
+  z-index: var(--z-toast);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--accent-ink);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-2);
+  transition: top var(--t-press) var(--ease-out);
+}
+
+.skip-link:focus-visible {
+  top: var(--sp-2);
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 페이지 머리줄. 한 줄로 얇게. 제목 + 한 줄 설명 + 오른쪽 도구. */
+.screen-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 46px;
+  padding: 0 var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.screen-head h1 {
+  font-size: var(--fs-h2);
+  font-weight: 640;
+}
+
+.screen-head .lede {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.screen-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ 좁은 화면 */
+
+@media (max-width: 767px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .rail {
+    grid-row: 2;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
+    padding: var(--sp-1) var(--sp-2);
+    padding-bottom: max(var(--sp-1), env(safe-area-inset-bottom));
+  }
+
+  .rail-mark,
+  .rail-split {
+    display: none;
+  }
+
+  .rail-foot {
+    margin-top: 0;
+    flex-direction: row;
+  }
+
+  .rail-item[aria-current="page"]::before {
+    left: 50%;
+    top: -5px;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+  }
+
+  .screen-head {
+    padding: 0 var(--sp-4);
+  }
+}
+
+/* ------------------------------------------------------------------ 빈 화면 · 오류 */
+
+/* 스피너만 있는 화면을 만들지 않는다. 무엇을 할 수 있는지 적는다. */
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  max-width: 34rem;
+  margin: var(--sp-7) auto;
+  padding: 0 var(--sp-5);
+}
+
+.notice-title {
+  font-size: var(--fs-h2);
+  font-weight: 620;
+  color: var(--ink);
+}
+
+.notice-body {
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+}
+
+.notice-hint {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.notice[data-tone="error"] .notice-title {
+  color: var(--critical);
+}

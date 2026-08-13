@@ -1,0 +1,12 @@
+/* WM 스타일 진입점. 실제 규칙은 styles/ 아래로 나눠 두었다.
+ *
+ * 순서가 중요하다: 토큰 → 바탕 → 골격 → 화면. 뒤에 오는 파일이 앞의 값을 쓴다.
+ * 컴포넌트에서 hex·px·radius 를 직접 쓰지 않는다(정본: web/DESIGN.md). */
+
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/shell.css";
+@import "./styles/ask.css";
+@import "./styles/graph.css";
+@import "./styles/browse.css";
+@import "./styles/drawer.css";

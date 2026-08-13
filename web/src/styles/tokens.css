@@ -1,0 +1,297 @@
+/* WM 디자인 토큰. 정본은 web/DESIGN.md 이고 이 파일이 그 구현이다.
+ *
+ * 컴포넌트에서 hex·px·radius 를 직접 쓰지 않는다. 여기 있는 변수만 쓴다.
+ * 라이트/다크는 세 갈래로 정의한다: OS 설정(media) · 사용자 토글(data-theme) 양방향.
+ * media 만 쓰면 토글이 OS 를 못 이기고, data-theme 만 쓰면 첫 페인트가 OS 를 무시한다. */
+
+:root {
+  /* ---------------------------------------------------------------- 글꼴 */
+  /* 글꼴은 두 갈래다: 읽고 만지는 글은 고딕, 위치·ID 는 고정폭.
+   *
+   * 답변 본문은 원래 명조였다. 읽는 면과 조작하는 면을 글꼴로 갈라 놓으려는 것이었는데,
+   * 화면에서 실패했다. 나눔명조 한글은 획 대비가 낮아 16px 에서 얇고 흐릿하게 보이고,
+   * 라틴만 세리프로 튀어 한 줄 안에서 두 글꼴처럼 읽힌다(실측: 본문 186자 전부
+   * NanumMyeongjo 로 정상 렌더되는데도 "글씨체가 깨졌다"는 신고를 받았다).
+   * 읽는 면은 글꼴이 아니라 종이색·여백·한 줄 길이·여백 각주로 구분한다. */
+  --font-ui:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-read: var(--font-ui);
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* ---------------------------------------------------------------- 타입 스케일 */
+  --fs-display: 30px;
+  --fs-h1: 22px;
+  --fs-h2: 17px;
+  /* 결론. 화면에서 가장 큰 본문. 이 단락이 곧 답이다.
+   * 17px 로 잡았다가 16.5 로 내렸다: 브리프 열 폭(454px)에서 17px 는 한 줄 27자라
+   * 읽기 구간 28~40자 밖으로 나갔다(실측). 15.5 와의 한 단 차이는 그대로 남는다. */
+  --fs-lead: 16.5px;
+  --fs-read: 15.5px; /* 답변 본문. 조작하는 글(14.5)보다 한 단 크게 둔다 */
+  --fs-body: 14.5px;
+  --fs-sm: 13px;
+  --fs-xs: 12px; /* 메타데이터 하한. 이보다 작은 글자는 노드 종류 표기만 허용 */
+  --fs-node: 13px;
+  --fs-node-type: 11px;
+
+  --lh-display: 1.28;
+  --lh-h1: 1.35;
+  --lh-h2: 1.4;
+  --lh-lead: 1.72;
+  --lh-read: 1.75;
+  --lh-body: 1.6;
+  --lh-tight: 1.45;
+
+  /* 답변 본문 한 줄 60~72자. 실측 42자였고 눈이 자주 되돌아갔다. */
+  --measure-read: 46rem;
+
+  /* ---------------------------------------------------------------- 간격 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 999px;
+
+  /* ---------------------------------------------------------------- 골격 */
+  --rail-w: 56px;
+  --marginalia-w: 110px;
+  --marginalia-w-wide: 152px;
+
+  --z-canvas: 0;
+  --z-sticky: 20;
+  --z-rail: 40;
+  --z-drawer: 60;
+  --z-modal: 80;
+  --z-toast: 100;
+
+  /* ---------------------------------------------------------------- 모션 */
+  --t-press: 120ms;
+  --t-state: 200ms;
+  --t-enter: 260ms;
+  --t-exit: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---------------------------------------------------------------- 색: 라이트 */
+  --ink: #1a1c22;
+  --ink-2: #565c6b;
+  --ink-3: #878d9c;
+  --ink-on-dark: #eceef6;
+
+  --paper: #ffffff;
+  --paper-sunk: #f7f8fb;
+  --ground: #f1f2f6;
+  --board: #e9ebf1;
+  --board-grid: #d7dae5;
+  --rail: #23244a;
+  --rail-hover: rgba(255, 255, 255, 0.1);
+  --rail-active: rgba(255, 255, 255, 0.16);
+
+  --line: #dfe1ea;
+  --line-soft: #edeff4;
+  --line-strong: #c3c7d4;
+
+  --accent: #5c60c0;
+  --accent-ink: #42459b; /* 흰 배경 위 글자·링크. AA 통과 */
+  --accent-soft: #eeeff9;
+  --accent-line: #c3c5e8;
+
+  --critical: #b4342a;
+  --critical-soft: #fceceb;
+  --conflict: #a8630c;
+  --conflict-soft: #fbf1e2;
+  --verified: #0e7350;
+  --verified-soft: #e4f4ee;
+  --unknown: #6b7280;
+  --unknown-soft: #f0f1f4;
+
+  --shadow-1: 0 1px 2px rgba(26, 28, 34, 0.05);
+  --shadow-2:
+    0 2px 4px rgba(26, 28, 34, 0.06), 0 12px 28px rgba(26, 28, 34, 0.08);
+  --scrim: rgba(26, 28, 34, 0.42);
+
+  /* 그래프 6계열. adapter.ts 가 노드 종류에서 --t-<소문자타입> 을 만들어 쓰므로
+   * 종류마다 변수는 두되 값은 6가지만 나눠 준다(무지개 그래프 방지). */
+  --fam-market: #5c60c0; /* 사업영역·산업 */
+  --fam-customer: #0e7a9e; /* 고객사·거래·경쟁사 */
+  --fam-need: #a8630c; /* 요구 */
+  --fam-build: #0e7350; /* 역량·기능·제품 */
+  --fam-knowledge: #6b7280; /* 주장·관찰·근거·자료 */
+  --fam-actor: #7a5aa8; /* 이벤트·페르소나 */
+
+  color-scheme: light;
+}
+
+/* 노드 종류 → 계열. 라이트/다크가 계열 변수만 갈아타면 되도록 한 번만 적는다. */
+:root {
+  --t-businessdomain: var(--fam-market);
+  --t-industry: var(--fam-market);
+  --t-account: var(--fam-customer);
+  --t-deal: var(--fam-customer);
+  --t-competitor: var(--fam-customer);
+  --t-need: var(--fam-need);
+  --t-capability: var(--fam-build);
+  --t-feature: var(--fam-build);
+  --t-product: var(--fam-build);
+  --t-claim: var(--fam-knowledge);
+  --t-observation: var(--fam-knowledge);
+  --t-evidence: var(--fam-knowledge);
+  --t-source: var(--fam-knowledge);
+  --t-event: var(--fam-actor);
+  --t-persona: var(--fam-actor);
+  --t-default: var(--fam-knowledge);
+}
+
+/* ------------------------------------------------------------------ 다크 */
+/* 값만 갈아탄다. 컴포넌트 CSS 는 이 블록 안에 두지 않는다. */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e9eaf2;
+    --ink-2: #a4abbc;
+    --ink-3: #7b8393;
+    --ink-on-dark: #eceef6;
+
+    --paper: #171922;
+    --paper-sunk: #1d2029;
+    --ground: #0f1117;
+    --board: #131620;
+    --board-grid: #262b38;
+    --rail: #1a1b36;
+
+    --line: #2a2e3b;
+    --line-soft: #22262f;
+    --line-strong: #3c4252;
+
+    --accent: #9da0d9;
+    --accent-ink: #b6b9e6;
+    --accent-soft: #23254a;
+    --accent-line: #3b3e6d;
+
+    --critical: #f09189;
+    --critical-soft: #35191a;
+    --conflict: #e0a45e;
+    --conflict-soft: #33240f;
+    --verified: #4fc79e;
+    --verified-soft: #102f26;
+    --unknown: #9aa1b0;
+    --unknown-soft: #23262f;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.4);
+    --scrim: rgba(8, 9, 13, 0.6);
+
+    --fam-market: #9da0d9;
+    --fam-customer: #5fbedd;
+    --fam-need: #e0a45e;
+    --fam-build: #4fc79e;
+    --fam-knowledge: #9aa1b0;
+    --fam-actor: #b79fda;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="light"] {
+  --ink: #1a1c22;
+  --ink-2: #565c6b;
+  --ink-3: #878d9c;
+
+  --paper: #ffffff;
+  --paper-sunk: #f7f8fb;
+  --ground: #f1f2f6;
+  --board: #e9ebf1;
+  --board-grid: #d7dae5;
+  --rail: #23244a;
+
+  --line: #dfe1ea;
+  --line-soft: #edeff4;
+  --line-strong: #c3c7d4;
+
+  --accent: #5c60c0;
+  --accent-ink: #42459b;
+  --accent-soft: #eeeff9;
+  --accent-line: #c3c5e8;
+
+  --critical: #b4342a;
+  --critical-soft: #fceceb;
+  --conflict: #a8630c;
+  --conflict-soft: #fbf1e2;
+  --verified: #0e7350;
+  --verified-soft: #e4f4ee;
+  --unknown: #6b7280;
+  --unknown-soft: #f0f1f4;
+
+  --shadow-1: 0 1px 2px rgba(26, 28, 34, 0.05);
+  --shadow-2:
+    0 2px 4px rgba(26, 28, 34, 0.06), 0 12px 28px rgba(26, 28, 34, 0.08);
+  --scrim: rgba(26, 28, 34, 0.42);
+
+  --fam-market: #5c60c0;
+  --fam-customer: #0e7a9e;
+  --fam-need: #a8630c;
+  --fam-build: #0e7350;
+  --fam-knowledge: #6b7280;
+  --fam-actor: #7a5aa8;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --ink: #e9eaf2;
+  --ink-2: #a4abbc;
+  --ink-3: #7b8393;
+
+  --paper: #171922;
+  --paper-sunk: #1d2029;
+  --ground: #0f1117;
+  --board: #131620;
+  --board-grid: #262b38;
+  --rail: #1a1b36;
+
+  --line: #2a2e3b;
+  --line-soft: #22262f;
+  --line-strong: #3c4252;
+
+  --accent: #9da0d9;
+  --accent-ink: #b6b9e6;
+  --accent-soft: #23254a;
+  --accent-line: #3b3e6d;
+
+  --critical: #f09189;
+  --critical-soft: #35191a;
+  --conflict: #e0a45e;
+  --conflict-soft: #33240f;
+  --verified: #4fc79e;
+  --verified-soft: #102f26;
+  --unknown: #9aa1b0;
+  --unknown-soft: #23262f;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.4);
+  --scrim: rgba(8, 9, 13, 0.6);
+
+  --fam-market: #9da0d9;
+  --fam-customer: #5fbedd;
+  --fam-need: #e0a45e;
+  --fam-build: #4fc79e;
+  --fam-knowledge: #9aa1b0;
+  --fam-actor: #b79fda;
+
+  color-scheme: dark;
+}
+
+/* GraphCanvas.tsx 가 DISPUTED 이중선을 그릴 때 배경색을 SVG stroke 로 넘긴다.
+ * 그 파일은 렌더러 전용이라 토큰 이름을 하나만 알고 있게 둔다. */
+:root {
+  --panel: var(--paper);
+}

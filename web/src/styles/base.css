@@ -1,0 +1,377 @@
+/* 바탕. 초기화 + 글자 + 여러 화면이 함께 쓰는 최소 요소만 둔다.
+ * 화면별 모양은 각 화면 CSS 로 간다. 여기에 페이지 규칙을 넣지 않는다. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  /* 한글은 자막이 넓어 기본 트래킹이 헐렁하게 보인다. 아주 조금만 좁힌다. */
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: 620;
+  letter-spacing: -0.012em;
+}
+
+h3 {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+}
+
+code,
+kbd,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+a {
+  color: var(--accent-ink);
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 2px;
+}
+
+/* 키보드로 옮겨 다닐 때만 테두리를 보인다. 마우스 클릭에는 안 나온다. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------ 스크롤 영역 */
+
+.scroll-y {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.scroll-y::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scroll-y::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--r-full);
+}
+
+.scroll-y::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 넓은 표·도면이 페이지 본문을 가로로 밀지 않게 한다. */
+.scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* ------------------------------------------------------------ 조용한 메타 */
+
+/* 메타데이터는 배지로 감싸지 않는다. 작고 흐린 글자로만 둔다. */
+.meta {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-tight);
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-3);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+/* 메타 항목 사이 구분점. 요소를 더 만들지 않고 가상 요소로 찍는다. */
+.meta-row > * + *::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-right: var(--sp-3);
+  vertical-align: 0.2em;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+/* ------------------------------------------------------------ 상태 표시 */
+
+/* 배지는 **상태에 뜻이 있을 때만** 쓴다. 분류·개수는 .meta 로 적는다.
+ * 색만으로 뜻을 전하지 않으려고 앞에 점을 하나 찍는다. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-xs);
+  font-weight: 550;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.tag::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.tag[data-tone="critical"] {
+  background: var(--critical-soft);
+  color: var(--critical);
+}
+
+.tag[data-tone="conflict"] {
+  background: var(--conflict-soft);
+  color: var(--conflict);
+}
+
+.tag[data-tone="verified"] {
+  background: var(--verified-soft);
+  color: var(--verified);
+}
+
+.tag[data-tone="unknown"] {
+  background: var(--unknown-soft);
+  color: var(--unknown);
+}
+
+.tag[data-tone="accent"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* ------------------------------------------------------------ 버튼 */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 34px;
+  padding: 0 var(--sp-4);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  font-size: var(--fs-body);
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    background var(--t-press) var(--ease-out),
+    border-color var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out);
+}
+
+.btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.btn[data-variant="primary"] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn[data-variant="primary"]:hover:not(:disabled) {
+  background: var(--accent-ink);
+}
+
+:root[data-theme="dark"] .btn[data-variant="primary"],
+.btn[data-variant="primary"] {
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn[data-variant="primary"] {
+    color: #14162b;
+  }
+}
+
+:root[data-theme="dark"] .btn[data-variant="primary"] {
+  color: #14162b;
+}
+
+:root[data-theme="light"] .btn[data-variant="primary"] {
+  color: #fff;
+}
+
+.btn[data-variant="outline"] {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.btn[data-variant="outline"]:hover:not(:disabled) {
+  background: var(--paper-sunk);
+  border-color: var(--ink-3);
+}
+
+.btn[data-variant="quiet"] {
+  color: var(--ink-2);
+  padding: 0 var(--sp-3);
+}
+
+.btn[data-variant="quiet"]:hover:not(:disabled) {
+  background: var(--paper-sunk);
+  color: var(--ink);
+}
+
+.btn[data-size="sm"] {
+  min-height: 28px;
+  font-size: var(--fs-sm);
+  padding: 0 var(--sp-3);
+}
+
+/* 아이콘만 있는 버튼은 반드시 aria-label 을 받는다(컴포넌트 쪽 규칙). */
+.btn[data-icon-only] {
+  padding: 0;
+  width: 34px;
+  min-height: 34px;
+}
+
+/* 글 안에 섞이는 링크형 버튼 */
+.linkish {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 2px;
+}
+
+.linkish:hover {
+  text-decoration-color: currentColor;
+}
+
+/* ------------------------------------------------------------ 섹션 나누기 */
+
+/* 같은 성격의 항목이 이어질 때 항목마다 상자를 두르지 않는다.
+ * 목록 안 구분선 한 줄로 잇는다(border 개수를 줄이는 핵심 장치). */
+.divided > * + * {
+  border-top: 1px solid var(--line-soft);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack[data-gap="2"] {
+  gap: var(--sp-2);
+}
+.stack[data-gap="3"] {
+  gap: var(--sp-3);
+}
+.stack[data-gap="4"] {
+  gap: var(--sp-4);
+}
+.stack[data-gap="5"] {
+  gap: var(--sp-5);
+}
+.stack[data-gap="6"] {
+  gap: var(--sp-6);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* 화면에서는 안 보이고 스크린리더만 읽는다. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

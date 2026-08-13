@@ -1,0 +1,1293 @@
+/* Ask — 브리프(읽는 면) + 도면(그래프). 이 제품의 주 화면이다. */
+
+.ask {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ------------------------------------------------------------ 초기 화면 */
+
+/* 추천 질문이 본문을 밀어내지 않게, 초기 화면은 질문 하나에만 집중한다. */
+.ask-landing {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  background: var(--ground);
+}
+
+.ask-landing-inner {
+  width: 100%;
+  max-width: 44rem;
+  padding: clamp(var(--sp-6), 9vh, 96px) var(--sp-5) var(--sp-7);
+}
+
+.ask-hero-eyebrow {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ask-hero-title {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: 700;
+  letter-spacing: -0.028em;
+}
+
+.ask-hero-lede {
+  margin-top: var(--sp-3);
+  max-width: 32rem;
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+}
+
+/* ------------------------------------------------------------ 질문 입력 */
+
+.ask-field {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-1);
+  transition:
+    border-color var(--t-press) var(--ease-out),
+    box-shadow var(--t-press) var(--ease-out);
+}
+
+.ask-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 132px;
+  padding: 9px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-h2);
+  line-height: 1.45;
+  resize: none;
+  outline: none;
+}
+
+.ask-input::placeholder {
+  color: var(--ink-3);
+}
+
+.ask-submit {
+  flex: none;
+}
+
+.ask-field-hint {
+  margin-top: var(--sp-2);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+/* ------------------------------------------------------------ 추천 질문 */
+
+.ask-suggest {
+  margin-top: var(--sp-6);
+}
+
+.ask-suggest-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.ask-suggest-head h2 {
+  font-size: var(--fs-sm);
+  font-weight: 620;
+  color: var(--ink-2);
+}
+
+/* 항목마다 상자를 두르지 않는다. 구분선 한 줄로 잇는다. */
+.ask-suggest-list {
+  border-top: 1px solid var(--line-soft);
+}
+
+.ask-suggest-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-3) var(--sp-2);
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-press) var(--ease-out);
+}
+
+.ask-suggest-item:hover {
+  background: var(--accent-soft);
+}
+
+.ask-suggest-item .q {
+  flex: 1;
+  color: var(--ink);
+  font-size: var(--fs-body);
+}
+
+.ask-suggest-item .kind {
+  flex: none;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.ask-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line-soft);
+}
+
+.ask-shortcut {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition:
+    border-color var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out);
+}
+
+.ask-shortcut:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+
+.ask-shortcut svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ------------------------------------------------------------ 답변 뒤 상단 바 */
+
+/* 답변이 나온 뒤에는 질문줄이 얇게 줄어든다. 화면을 답변에 넘긴다. */
+.ask-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 46px;
+  padding: var(--sp-2) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.ask-bar-field {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--ground);
+  transition: border-color var(--t-press) var(--ease-out);
+}
+
+.ask-bar-field:focus-within {
+  border-color: var(--accent);
+  background: var(--paper);
+}
+
+.ask-bar-field .ask-input {
+  min-height: 30px;
+  max-height: 30px;
+  padding: 4px 0;
+  font-size: var(--fs-body);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------ 작업 골격 */
+
+.ask-work {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 44fr 56fr;
+  min-width: 0;
+}
+
+@media (min-width: 1600px) {
+  .ask-work {
+    grid-template-columns: 42fr 58fr;
+  }
+}
+
+.brief {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+}
+
+.brief-inner {
+  padding: var(--sp-5) var(--sp-4) var(--sp-8);
+}
+
+@media (min-width: 1600px) {
+  .brief-inner {
+    padding: var(--sp-5) var(--sp-5) var(--sp-8);
+  }
+}
+
+/* ------------------------------------------------------------ 브리프 머리 */
+
+/* 질문은 맥락이고 답이 아니다. 그래서 작게 둔다.
+ *
+ * 예전에는 22px 굵은 제목이었다. 위쪽 검색창에 같은 문장이 이미 있는데 화면에서 가장 큰
+ * 글자를 한 번 더 차지해서, 결론이 첫 화면 220px 아래로 밀렸다(실측). 검색창은 브리프가
+ * 스크롤되는 동안에도 그 자리에 남아 있으니 질문을 잃지 않는다. */
+.brief-question {
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* 질문 줄 + 저장 버튼. 버튼이 질문 글자를 밀어내지 않게 질문이 남는 폭을 다 쓴다. */
+.brief-qrow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+}
+
+.brief-qrow .brief-question {
+  flex: 1;
+  min-width: 0;
+}
+
+.brief-qrow .save-btn {
+  flex: none;
+}
+
+/* 정리가 끝났다는 알림. 상자를 만들지 않고 한 줄로 둔다. */
+.brief-ready {
+  margin-top: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------ 본문 + 여백 각주 */
+
+/* 본문 열 + 여백 열.
+ *
+ * 여백 열 폭과 사이 간격을 좁게 잡는다. 브리프 창이 화면의 44% 라 (1440 에서 약 609px)
+ * 여백 열이 넓으면 본문 한 줄이 24자 밑으로 떨어져 눈이 계속 되돌아간다.
+ * 한글은 자막이 정사각형에 가까워서 한 줄 28~40자가 읽기 좋은 구간이다. */
+.brief-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--marginalia-w);
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  align-items: start;
+}
+
+@media (min-width: 1600px) {
+  .brief-body {
+    grid-template-columns: minmax(0, 1fr) var(--marginalia-w-wide);
+    gap: var(--sp-5);
+  }
+}
+
+.brief-col {
+  min-width: 0;
+  max-width: var(--measure-read);
+}
+
+/* 답변 본문. 화면의 다른 글보다 한 단 크고 줄 간격이 넓다.
+ * 읽는 면이라는 표시는 글꼴이 아니라 종이색·여백·한 줄 길이·여백 각주가 맡는다. */
+.brief-text {
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+  color: var(--ink);
+  letter-spacing: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.brief-text p + p {
+  margin-top: var(--sp-3);
+}
+
+.brief-text strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* 각주 번호. 본문 흐름을 끊지 않게 위첨자로 작게. */
+.cite {
+  display: inline-block;
+  min-width: 17px;
+  height: 17px;
+  margin: 0 1px 0 2px;
+  padding: 0 3px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-full);
+  background: var(--paper);
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 15px;
+  text-align: center;
+  vertical-align: 0.42em;
+  cursor: pointer;
+  transition:
+    background var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out);
+}
+
+.cite:hover {
+  background: var(--accent-soft);
+}
+
+.cite[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+:root[data-theme="dark"] .cite[aria-pressed="true"] {
+  color: #14162b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cite[aria-pressed="true"] {
+    color: #14162b;
+  }
+}
+
+:root[data-theme="light"] .cite[aria-pressed="true"] {
+  color: #fff;
+}
+
+/* 권고: 상자로 감싸지 않고 왼쪽 세로선 하나로 표시한다. */
+.brief-reco {
+  margin-top: var(--sp-5);
+  padding-left: var(--sp-4);
+  border-left: 2px solid var(--accent);
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+  word-break: keep-all;
+}
+
+.brief-reco-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.brief-estimate {
+  margin-top: var(--sp-3);
+  padding-left: var(--sp-4);
+  border-left: 2px dashed var(--line-strong);
+  color: var(--ink-2);
+  font-family: var(--font-read);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+}
+
+.brief-estimate-label {
+  display: block;
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+}
+
+/* ------------------------------------------------------------ 여백 각주 */
+
+.brief-margin {
+  position: relative;
+  min-height: 1px;
+}
+
+.mnote {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  padding: 0 0 0 var(--sp-3);
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--t-state) var(--ease-out),
+    opacity var(--t-state) var(--ease-out);
+}
+
+.mnote:hover {
+  border-left-color: var(--accent-line);
+}
+
+.mnote-top {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.mnote-marker {
+  flex: none;
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mnote-source {
+  min-width: 0;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 550;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+}
+
+/* display 를 반드시 block 으로 둔다. inline 요소에는 overflow·text-overflow 가 안 걸려서
+ * 긴 위치 표기가 여백 열 밖으로 삐져나온다(실측: 슬랙 채널 표기가 브리프 창을 넘어갔다). */
+.mnote-where {
+  display: block;
+  margin-top: 1px;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mnote[data-active="true"] {
+  border-left-color: var(--accent);
+  border-left-width: 2px;
+  padding-left: calc(var(--sp-3) - 1px);
+}
+
+.mnote[data-active="true"] .mnote-source {
+  color: var(--ink);
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+/* 고른 각주만 발췌를 펼친다. 평소에는 자료 이름과 위치만. */
+.mnote-snippet {
+  display: none;
+}
+
+.mnote[data-active="true"] .mnote-snippet {
+  display: block;
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  -webkit-box-orient: vertical;
+}
+
+.mnote-open {
+  display: none;
+}
+
+.mnote[data-active="true"] .mnote-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--sp-2);
+  color: var(--accent-ink);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.mnote-open svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 여백 열이 좁아지면 각주 목록을 본문 아래로 내린다. */
+.brief-margin-fallback {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------ 세 단 위계
+ *
+ * 결론 → 핵심 포인트 → 할 일. 위계는 **크기와 여백으로만** 만든다.
+ * 카드로 감싸거나 테두리를 두르면 세 단이 서로 대등해 보인다(모두 같은 상자니까).
+ * 색은 각주와 경고에만 쓴다. 단을 색으로 구분하지 않는다.
+ *
+ * 상세 영역과 사이에만 선 하나를 둔다. 거기가 "읽는 자리"와 "찾아보는 자리"의 경계다. */
+
+/* 단 이름. 상자 없이 작은 라벨 한 줄. */
+.col-label {
+  display: block;
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
+/* ① 결론 */
+
+.lead-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.lead-head .col-label {
+  color: var(--accent-ink);
+}
+
+/* 정리기가 도는 중. 점 셋이 차례로 밝아진다. 원문은 이미 아래에 보이고 있다. */
+.lead-working {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.lead-working::after {
+  content: "···";
+  margin-left: 3px;
+  animation: lead-blink 1.4s var(--ease-out) infinite;
+}
+
+@keyframes lead-blink {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lead-working::after {
+    animation: none;
+  }
+}
+
+.lead-title {
+  margin-bottom: var(--sp-2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* 화면에서 가장 큰 본문. 이 단락이 답이다. */
+.lead-summary {
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+}
+
+/* 왜 그렇게 봤는지 한 줄. 자세한 것은 「분석 세부정보」. */
+.lead-basis {
+  margin-top: var(--sp-3);
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+}
+
+/* ② 핵심 포인트 */
+
+.points {
+  margin-top: var(--sp-7);
+}
+
+.point-list {
+  margin: var(--sp-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.point {
+  display: grid;
+  grid-template-columns: 1.35rem minmax(0, 1fr);
+  gap: 0 var(--sp-3);
+}
+
+.point + .point {
+  margin-top: var(--sp-5);
+}
+
+.point-no {
+  padding-top: 1px;
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.point-body {
+  min-width: 0;
+}
+
+.point-title {
+  margin-bottom: 2px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-tight);
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.point-claim {
+  font-family: var(--font-read);
+  font-size: var(--fs-read);
+  line-height: var(--lh-read);
+  color: var(--ink);
+  word-break: keep-all;
+}
+
+/* 근거는 화살표로 잇는다. "그래서" 라는 뜻을 글자 대신 기호가 맡는다. */
+.point-reason {
+  position: relative;
+  margin-top: var(--sp-1);
+  padding-left: var(--sp-4);
+  color: var(--ink-2);
+  font-family: var(--font-read);
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
+.point-reason::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--ink-3);
+}
+
+/* ③ 그래서 어떻게 할까 */
+
+.doing {
+  margin-top: var(--sp-7);
+}
+
+.doing .brief-reco {
+  margin-top: var(--sp-3);
+}
+
+.seq {
+  margin-top: var(--sp-4);
+}
+
+.seq-label {
+  display: block;
+  margin-top: var(--sp-4);
+  margin-bottom: var(--sp-1);
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.next-list {
+  margin-top: var(--sp-3);
+}
+
+/* 순서는 칩이 아니라 화살표로 이은 글이다. 칩으로 만들면 색과 테두리가 늘어난다. */
+.seq-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.seq-chain li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  word-break: keep-all;
+}
+
+.seq-chain li:not(:last-child)::after {
+  content: "→";
+  color: var(--ink-3);
+}
+
+/* ─────────────────────────── 상세. 읽는 자리와 찾아보는 자리의 경계 */
+
+.details {
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
+.details .col-label {
+  margin-bottom: var(--sp-2);
+}
+
+.detail-block + .tech-grid {
+  margin-top: var(--sp-5);
+}
+
+.detail-block-title {
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: var(--ink-2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+/* ------------------------------------------------------------ 경고 배지 */
+
+/* 결론을 뒤집을 만한 것만 여기 온다. 비면 자리도 차지하지 않는다. */
+.brief-flags:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+/* ------------------------------------------------------------ 근거의 세기 */
+
+.strength {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.strength-meter {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.strength-meter i {
+  width: 22px;
+  height: 5px;
+  border-radius: var(--r-full);
+  background: var(--line);
+}
+
+.strength-meter i.on {
+  background: var(--ink-3);
+}
+
+.strength-meter i.on.HIGH {
+  background: var(--verified);
+}
+
+.strength-meter i.on.MEDIUM {
+  background: var(--conflict);
+}
+
+.strength-meter i.on.LOW {
+  background: var(--unknown);
+}
+
+.strength-band {
+  font-size: var(--fs-body);
+  font-weight: 650;
+}
+
+.strength-band[data-band="HIGH"] {
+  color: var(--verified);
+}
+.strength-band[data-band="MEDIUM"] {
+  color: var(--conflict);
+}
+.strength-band[data-band="LOW"] {
+  color: var(--unknown);
+}
+
+.strength-why {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.strength-basis {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-4);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.strength-basis b {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ 목록형 근거 */
+
+/* 넓은 화면에서는 여백 각주가 주역이고, 이 목록은 전부 훑고 싶을 때 쓴다. */
+.ev-list {
+  border-top: 1px solid var(--line-soft);
+}
+
+.ev-row {
+  display: block;
+  width: 100%;
+  padding: var(--sp-3) var(--sp-2);
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--t-press) var(--ease-out),
+    border-left-color var(--t-press) var(--ease-out);
+}
+
+.ev-row:hover {
+  background: var(--paper-sunk);
+}
+
+.ev-row[data-active="true"] {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.ev-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.ev-marker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: var(--r-full);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ev-source {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ev-snippet {
+  display: block;
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.ev-where {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.ev-where code {
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------ 접히는 블록 */
+
+.fold {
+  margin-top: var(--sp-5);
+  border-top: 1px solid var(--line-soft);
+}
+
+.fold-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-3) 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fold-summary:hover {
+  color: var(--ink);
+}
+
+.fold-summary svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--t-state) var(--ease-out);
+}
+
+.fold[data-open="true"] .fold-summary svg {
+  transform: rotate(90deg);
+}
+
+.fold-count {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.fold-body {
+  padding-bottom: var(--sp-4);
+}
+
+/* 기술 정보. 기본은 접혀 있다. 개발 정보가 답변보다 먼저 보이지 않게. */
+.tech-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--sp-2) var(--sp-4);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+}
+
+.tech-grid dt {
+  color: var(--ink-3);
+}
+
+.tech-grid dd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------ 공백·어긋남·모름 */
+
+.finding {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.finding-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.finding-subject {
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.finding-reason {
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.finding-hint {
+  margin-top: var(--sp-1);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.finding-side {
+  margin-top: var(--sp-2);
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--conflict);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.finding-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+}
+
+.plain-list li {
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+/* 마지막 줄 밑에는 선을 두지 않는다. 항목이 더 있는 것처럼 보인다. */
+.plain-list li:last-child {
+  border-bottom: 0;
+}
+
+/* ------------------------------------------------------------ 로딩 */
+
+.stages {
+  max-width: 30rem;
+  margin: 0;
+  padding: 0;
+}
+
+.stage {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  color: var(--ink-3);
+  font-size: var(--fs-body);
+  transition: color var(--t-state) var(--ease-out);
+}
+
+.stage-dot {
+  flex: none;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+/* 지나온 단계 */
+.stage[data-state="done"] {
+  color: var(--ink-2);
+}
+
+.stage[data-state="done"] .stage-dot {
+  border-color: var(--verified);
+  background: var(--verified);
+}
+
+.stage[data-state="done"] .stage-dot::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 4.5px;
+  width: 5px;
+  height: 2.5px;
+  border-left: 1.5px solid var(--paper);
+  border-bottom: 1.5px solid var(--paper);
+  transform: rotate(-45deg);
+}
+
+/* 지금 하는 단계 */
+.stage[data-state="now"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.stage[data-state="now"] .stage-dot {
+  border-color: var(--accent);
+}
+
+.stage[data-state="now"] .stage-dot::after {
+  content: "";
+  position: absolute;
+  inset: 2.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: stage-pulse 1.5s var(--ease-out) infinite;
+}
+
+@keyframes stage-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+.stage-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+}
+
+/* 기다리지 않고 원문으로 빠지는 출구. 눈에 띄되 대기 단계보다 세지 않게. */
+.work-escape {
+  margin-top: var(--sp-4);
+}
+
+.load-skeleton {
+  margin-top: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  max-width: var(--measure-read);
+}
+
+.load-skeleton i {
+  height: 13px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    90deg,
+    var(--line-soft) 0%,
+    var(--line) 50%,
+    var(--line-soft) 100%
+  );
+  background-size: 220% 100%;
+  animation: skeleton 1.6s linear infinite;
+}
+
+@keyframes skeleton {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+/* ------------------------------------------------------------ 좁은 화면 */
+
+/* 1024~1280: 여백 각주 열을 접고 본문 아래 목록으로 내린다. */
+@media (max-width: 1279px) {
+  .brief-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .brief-margin {
+    display: none;
+  }
+}
+
+/* 좁은 화면에서 도면을 여닫는 버튼. 넓은 화면에서는 도면이 늘 보이니 필요 없다. */
+.narrow-graph-toggle {
+  display: none;
+}
+
+/* < 1024: 위아래로 나눈다. 도면은 접힌 채로 시작한다. */
+@media (max-width: 1023px) {
+  .narrow-graph-toggle {
+    display: inline-flex;
+    position: fixed;
+    right: var(--sp-4);
+    bottom: var(--sp-4);
+    z-index: var(--z-sticky);
+    background: var(--paper);
+    box-shadow: var(--shadow-2);
+  }
+
+  .ask-work {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .brief {
+    border-right: 0;
+  }
+
+  .ask-work[data-graph="open"] {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ask-work:not([data-graph="open"]) .board {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .brief-inner {
+    padding: var(--sp-4) var(--sp-4) var(--sp-7);
+  }
+
+  .ask-bar {
+    padding: var(--sp-2) var(--sp-4);
+  }
+
+  .ask-landing-inner {
+    padding: var(--sp-5) var(--sp-4) var(--sp-7);
+  }
+
+  .ask-hero-title {
+    font-size: 24px;
+  }
+}
