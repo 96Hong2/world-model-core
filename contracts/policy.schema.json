@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worldmodel.example/contracts/policy.schema.json",
+  "title": "Contextual Authority Policy Schema",
+  "description": "문서유형(source_type) × 주장유형(claim_domain) → 권위등급. v1.0 §F 정본. authority 는 source 의 속성이 아니라 (source, 질문 맥락) 쌍의 속성이므로 Source 노드에 rank 를 저장하지 않고 정책 파일이 질의 시 계산한다. 1A는 인용 라벨링까지만 쓰고 rerank·strength 상한·authority_caveat 전면 배선은 1B(B2).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policy", "claim_domains", "matrix"],
+
+  "properties": {
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "default_authority", "default_domain"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "default_authority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "default_domain": { "type": "string" },
+        "reviewers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "정책 파일이 실질적 권력이 되므로 제품·영업 각 1인 이상을 지정한다(v1.0 §F-4)."
+        }
+      }
+    },
+
+    "claim_domains": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "question_example"],
+        "properties": {
+          "id": { "$ref": "#/$defs/claimDomain" },
+          "question_example": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "점수 → 티어 경계. 같은 domain 안에서의 순서·간격만 의미를 가지며 domain 간 비교는 금지한다.",
+      "properties": {
+        "T1": { "$ref": "#/$defs/tierBand" },
+        "T2": { "$ref": "#/$defs/tierBand" },
+        "T3": { "$ref": "#/$defs/tierBand" },
+        "T4": { "$ref": "#/$defs/tierBand" },
+        "T5": { "$ref": "#/$defs/tierBand" }
+      }
+    },
+
+    "matrix": {
+      "type": "object",
+      "description": "claim_domain → { source_type: 0~100 }. 키는 claimDomain enum 값이어야 하고, 값의 키는 source_type.enum.json 의 값이어야 한다.",
+      "propertyNames": { "$ref": "#/$defs/claimDomain" },
+      "additionalProperties": {
+        "type": "object",
+        "minProperties": 1,
+        "propertyNames": { "$ref": "source_type.enum.json" },
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+
+    "modifiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "인스턴스 단위 보정(캡 100 / 플로어 0). superseded 는 점수가 아니라 time 게이트 탈락이다.",
+      "properties": {
+        "doc_status": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "approved": { "type": "integer" },
+            "draft": { "type": "integer" },
+            "superseded": { "const": "gate" }
+          }
+        },
+        "reviewed_by_owner": { "type": "integer" },
+        "anonymous_or_unowned": { "type": "integer" },
+        "vision_transcription": {
+          "type": "integer",
+          "description": "이미지 PDF 판독본. 원본 파싱이 아니므로 감점 대상."
+        },
+        "copy_residue_suspected": {
+          "type": "integer",
+          "description": "복사 잔존 텍스트가 실측된 문서(다른 고객사 제안서의 표가 그대로 남은 사례)."
+        }
+      }
+    },
+
+    "forbidden_inversions": {
+      "type": "array",
+      "description": "서열 역전 금지 쌍. 1A에서 회귀 시드로 못 박고 1B(B2)에서 회귀 테스트로 돌린다. higher 의 점수는 같은 domain 안에서 lower 보다 항상 커야 한다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_domain", "higher", "lower", "reason"],
+        "properties": {
+          "claim_domain": { "$ref": "#/$defs/claimDomain" },
+          "higher": { "$ref": "source_type.enum.json" },
+          "lower": { "$ref": "source_type.enum.json" },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "consumption_points": {
+      "type": "array",
+      "description": "공통 전처리 순서는 어디서나 같다: 후보 Evidence → (1) sensitivity 하드 필터 → (2) Time 게이트 → (3) Authority 적용.",
+      "items": { "type": "string" }
+    }
+  },
+
+  "$defs": {
+    "claimDomain": {
+      "type": "string",
+      "enum": [
+        "product_behavior",
+        "product_intent",
+        "customer_need",
+        "deal_fact",
+        "market_fact"
+      ],
+      "description": "v1.0 §F-2 closed set 5종. deal_fact 를 customer_need 에서 분리한 이유: 활동일지는 딜 사실에 대해서는 작성 룰이 있는 1차 기록이지만 고객 요구에 대해서는 영업대표의 전언이다. 하나로 합치면 이 차이를 표현할 수 없다."
+    },
+    "tierBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "label"],
+      "properties": {
+        "min": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "label": { "type": "string" }
+      }
+    }
+  },
+
+  "x-rules": [
+    "authority 는 retrieval 의 re-ranker 이지 하드 필터가 아니다. authority·status 를 필터로 쓰면 rare-critical 이 사라진다(A5 AC).",
+    "모든 판정에 policy_version 을 스탬프해 정책이 바뀌어도 과거 판정을 재현한다.",
+    "정책 파일과 엔진에 LLM 호출이 없다.",
+    "domain 분류 실패 시 중립 프로파일로 동작하고 답변에 '질문 유형 미분류' 캐비앗을 단다."
+  ],
+  "x-1a-scope": "1A는 authority_label(tier·claim_domain·source_type·policy_version)을 Evidence 에 붙여 표시하는 것까지만 한다. matrix 를 이용한 rerank, evidence_strength 상한, authority_caveat 자동 생성은 1B(B2) 범위다. 그래서 이 스키마는 A0 산출물이지만 실제 authority-policy.yaml 작성은 B2 소관이며 config/ 에 두지 않았다."
+}
