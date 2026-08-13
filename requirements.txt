@@ -1,0 +1,19 @@
+# 엔진 실행에 필요한 것
+neo4j~=6.2
+pyyaml>=6.0
+jsonschema>=4.21
+referencing>=0.35
+fastapi>=0.110
+uvicorn>=0.29
+
+# 파서
+openpyxl>=3.1
+python-docx>=1.1
+python-pptx>=0.6.23
+beautifulsoup4>=4.12
+
+# LLM (Anthropic API provider 를 쓸 때만 필요. CLI/fixture provider 는 없어도 된다)
+anthropic>=0.40
+
+# 테스트
+pytest>=8.0

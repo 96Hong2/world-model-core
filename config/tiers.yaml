@@ -1,0 +1,192 @@
+# LLM tier / provider 바인딩 (A3 LLMService 입력)
+#
+# 원칙 (v1.0 §H, REVISED §2)
+#   LLM 은 후보 생성만 한다. 그래프 쓰기 권한이 없고 status 를 바꿀 수 없다.
+#   deterministic 우선 — xlsx 파싱·집계·태깅 규칙·evidence strength 산출은 전부 코드다.
+#   S/L tier 를 분리하고 이 파일로 바인딩한다. provider 는 추상화 뒤에 두어 목 교체 시 상위 코드가 안 바뀐다.
+
+version: "1.0.0"
+
+# --------------------------------------------------------------------------
+# tier 정의
+# --------------------------------------------------------------------------
+tiers:
+  S:
+    model: claude-sonnet-5
+    role: 후보 생성기 (하이쿠 금지 — 최소 소넷)
+    used_for:
+      - "비정형 셀·문서·쓰레드에서 후보 추출 (§4 ③, T2 게이트가 뒤를 받는다)"
+      - "Need/Capability taxonomy 매핑 후보 제안 (신규 canonical 생성 금지)"
+      - "Router 3단 중 마지막 폴백 — 질문 유형 enum 분류"
+      - "Q-E·Q-M 답변 합성"
+    forbidden:
+      - "status 쓰기 (거부되어야 한다 — A4 차단 케이스)"
+      - "신규 canonical Need/Capability 생성"
+      - "신규 관계 type 제안 반영 (closed set 이므로 검토 큐로만)"
+      - "그래프 직접 쓰기"
+    measured_cost_per_call_usd: 0.0668
+    cost_measurement_note: >-
+      2026-08-12 실측 $0.0668/call. 모델을 haiku-4-5 에서 sonnet-5 로 올린 뒤 같은 프로브
+      프롬프트(발췌 1건 추출)로 다시 쟀다 — 옛 haiku 값 $0.016 과 같은 조건이라 4.2배다.
+      ⚠️ **이 값을 예산 산정에 쓰지 않는다.** 프로브는 발췌 1건이고 실제 추출은 배치 10건이라
+      훨씬 크다(실측: 배치 10건 추출이 haiku 에서 $0.064/call). 예산은 llm_call 원장의
+      실제 누적치로 잡는다.
+    max_output_tokens: 4096
+    temperature: 0
+
+  L:
+    model: claude-opus-5
+    role: 전략 질문 합성기
+    used_for:
+      - "Q-S strategic 합성 — 단, deterministic 집계 결과 + 선별 evidence 만 입력한다"
+    forbidden:
+      - "모든 자료를 통째로 투입 (§11 Risk: 'Q-S 가 자료 전부를 L 에 투입으로 퇴화')"
+      - "status 쓰기"
+      - "그래프 직접 쓰기"
+    input_contract: >-
+      BD/Industry → Need → Account/Deal → Capability → Gap → Competitor → Evidence 순으로
+      deterministic 집계를 먼저 수집한 뒤 그 결과와 선별 evidence 만 넣는다. 이것을 A5 AC 로 강제한다.
+    measured_cost_per_call_usd: null
+    cost_measurement_note: "실측하지 않았다(미확인). A3 의 llm_call 계측으로 첫 호출부터 기록한다."
+    max_output_tokens: 8192
+    temperature: 0
+
+# --------------------------------------------------------------------------
+# provider 추상화
+# --------------------------------------------------------------------------
+providers:
+  default: claude_cli
+  available:
+    - id: claude_cli
+      description: 로컬 Claude CLI 를 통해 호출한다. 별도 API 키 없이 개발·데모에 쓴다.
+      default: true
+      cost_recorded: true
+    - id: anthropic
+      description: Anthropic API 직접 호출. 배치·병렬이 필요할 때 쓴다.
+      requires_env: [ANTHROPIC_API_KEY]
+      cost_recorded: true
+    - id: fixture
+      description: >-
+        저장된 응답을 재생한다. eval 하네스와 CI 에서 쓴다.
+        provider 목 교체 시 상위 코드가 무변경이어야 한다는 A3 AC 를 이 provider 로 검증한다.
+      cost_recorded: false
+      deterministic: true
+
+# --------------------------------------------------------------------------
+# 공통 동작 (A3 LLMService)
+# --------------------------------------------------------------------------
+structured_output:
+  mode: json_schema
+  revalidate: true
+  note: "provider 가 무엇이든 반환값을 공통 스키마로 재검증한다. 스키마 위반은 repair 사다리로 간다."
+
+retry_ladder:
+  steps:
+    - { attempt: 1, action: "원본 프롬프트" }
+    - { attempt: 2, action: "스키마 위반 지점을 명시한 repair 프롬프트" }
+    - { attempt: 3, action: "repair 재시도" }
+    - { attempt: 4, action: "실패 반환 (예외를 삼키지 않는다)" }
+  ac: "스키마 위반 repair 2회 후 실패 반환 (A3 AC)"
+
+cache:
+  strategy: content_hash
+  key: "sha256(provider + model + prompt_template_id + prompt_hash + schema_hash)"
+  store: data/cache/
+  ac: "캐시 히트 시 비용 0 으로 기록한다 (A3 AC)."
+
+instrumentation:
+  event: llm_call
+  fields:
+    [
+      ts,
+      tier,
+      provider,
+      model,
+      prompt_template_id,
+      prompt_hash,
+      input_tokens,
+      output_tokens,
+      cost_usd,
+      cache_hit,
+      latency_ms,
+      attempt,
+      outcome,
+    ]
+  note: "비용은 추정하지 말고 실제 호출에서 기록한다. tiers.measured_cost_per_call_usd 는 참고값일 뿐이다."
+
+# --------------------------------------------------------------------------
+# 단계별 담당 (누가 무엇을 하는가)
+# --------------------------------------------------------------------------
+stage_assignment:
+  - {
+      stage: "② 파싱",
+      actor: DET,
+      note: "openpyxl·pdftotext·python-pptx·python-docx·bs4·jsonl. LLM 없음",
+    }
+  - {
+      stage: "② PII 마스킹",
+      actor: DET,
+      note: "정규식 + 열 이름 규칙. LLM 없음",
+    }
+  - {
+      stage: "③ 구조화 컬럼 추출",
+      actor: DET,
+      note: "Feature·BD·Deal 필드·enum 은 전부 코드",
+    }
+  - {
+      stage: "③ 비정형 추출",
+      actor: S,
+      note: "후보 생성 후 T2 게이트(스키마 + 숫자·고유명사 보존 검사)",
+    }
+  - { stage: "④ ER", actor: DET, note: "alias 사전 exact match. 미스는 기록만" }
+  - {
+      stage: "④ Need/Capability 매핑",
+      actor: "DET + S",
+      note: "사전 매핑이 1차, S 는 후보 제안만",
+    }
+  - {
+      stage: "⑤ criticality 태깅",
+      actor: DET,
+      note: "1A 는 규칙 전용. 1B 의 태거도 S tier(소넷 이상)다",
+    }
+  - {
+      stage: "⑥ 적재·상태 판정",
+      actor: DET,
+      note: "claim-verdict-rules.yaml 기계 적용. LLM 은 status 를 쓸 수 없다",
+    }
+  - {
+      stage: "⑦ Router",
+      actor: "DET → DET → S",
+      note: "템플릿 → 신호 규칙 → S enum 폴백",
+    }
+  - { stage: "⑦ Q-E / Q-M 합성", actor: S }
+  - { stage: "⑦ Q-S 합성", actor: L, note: "집계 결과 + 선별 evidence 만 입력" }
+  - {
+      stage: "⑦ citation 검증",
+      actor: DET,
+      note: "evidence_id 실존 검증. 실패 문장은 제거",
+    }
+  - {
+      stage: "⑧ evidence_strength 산출",
+      actor: DET,
+      note: "밴드 + basis 전부 코드",
+    }
+
+model_policy:
+  min_tier: sonnet
+  note: >-
+    하이쿠를 쓰지 않는다. 어느 단계든 최소 소넷 이상을 쓴다(2026-08-12 지시).
+    비용이 아니라 품질이 기준이다. 1B 의 「Small LLM 태거」도 S tier 이므로 소넷 이상이다.
+  # llm/tiers.py 가 tier 를 읽을 때마다 이 목록을 대조해 거부한다.
+  # 정책을 문장으로만 두면 다음 사람이 「저비용 단계니까」라며 되돌려 놓는다(실제로 그랬다).
+  forbidden_model_prefixes:
+    - claude-haiku
+    - claude-instant
+
+vendor_lock_in_guards:
+  - provider 어댑터 1겹 뒤에만 SDK 를 둔다
+  - 프롬프트는 템플릿 파일로 분리하고 코드에 하드코딩하지 않는다
+  - 응답 파싱은 공통 스키마 재검증을 거친다
+  - 모델 id 는 이 파일에만 적는다
+  - fixture provider 로 전 경로가 LLM 없이 돌아야 한다
+  - 비용·토큰 계측은 provider 무관 공통 필드로 남긴다

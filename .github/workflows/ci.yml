@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  graph:
+    name: 그래프 스키마 + 테스트
+    runs-on: ubuntu-latest
+
+    services:
+      neo4j:
+        image: neo4j:5.26-community
+        env:
+          NEO4J_AUTH: neo4j/bwmdemo123
+          NEO4J_server_memory_heap_max__size: 2G
+        ports:
+          - 7474:7474
+          - 7687:7687
+        # APOC 는 일부러 넣지 않는다. 스키마·질의 계층이 APOC 에 몰래 기대는 것을 CI 가 잡아 준다.
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p bwmdemo123 'RETURN 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 20
+          --health-start-period 40s
+
+    env:
+      BWM_NEO4J_URI: bolt://localhost:7687
+      BWM_NEO4J_USER: neo4j
+      BWM_NEO4J_PASSWORD: bwmdemo123
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 의존성 설치
+        run: python -m pip install --upgrade pip -r requirements.txt
+
+      - name: DDL 적용
+        run: python -m graph.ddl apply
+
+      - name: DDL 재적용해도 제약·인덱스 수가 변하지 않는지 확인
+        run: |
+          python - <<'PY'
+          from graph import ddl
+          from graph.connection import writable_graph
+
+          with writable_graph() as graph:
+              before = ddl.status(graph)
+              ddl.apply(graph)
+              after = ddl.status(graph)
+              assert before["constraint_count"] == after["constraint_count"], (before, after)
+              assert before["index_count"] == after["index_count"], (before, after)
+              print(
+                  f"제약 {after['constraint_count']}개 · 인덱스 {after['index_count']}개 · "
+                  f"analyzer {after['fulltext_analyzer']}"
+              )
+          PY
+
+      - name: 스키마 현황 출력
+        run: python -m graph.ddl status
+
+      - name: pytest
+        # 실코퍼스(data/) 의존 테스트는 스스로 skip 한다. 여기서 도는 것은 단위·계약 계층이다.
+        run: python -m pytest tests -q

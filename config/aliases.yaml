@@ -1,0 +1,534 @@
+# Alias 사전 초판 (A0 확정)
+#
+# 원칙 (v1.0 §D-5 / REVISED §4 ④)
+#   1. 정규화 후 exact match 만 한다. 부분 문자열·유사도 자동 병합은 코드에 경로 자체를 만들지 않는다.
+#   2. 사전 미스는 신규 Entity 로 두고 기록만 한다. SAME_AS 후보 큐와 승인 CLI 는 1B(B4).
+#   3. 접두어가 같아도 다른 법인이면 절대 묶지 않는다. do_not_merge 가 그 목록이다.
+#   4. 오타로 보이는 표기는 alias 로 넣지 않는다. review_queue_seed 로 보내 사람이 판단한다.
+#
+# 실측 출처
+#   accounts   : 활동일지 3계층 + 주간계획 5.·6. 표 + pain 3시트 = 원문 표기 129종
+#                Slack 4채널(#리드등록알림 118종, #all-영업활동공유 제목 첫 토큰 196종)
+#   product_terms : docs/glossary.md 104행 → data/raw_probe/glossary-pairs.tsv
+#   competitors / partners : [자차캐피탈] TABLE 5, BD Overview 진척도 H열, 하늘IT 검토 문서
+
+version: "1.0.0"
+
+normalize:
+  steps:
+    - "NFKC 정규화"
+    - "앞뒤 공백 제거, 연속 공백 1칸으로 축약"
+    - "법인 접두·접미 제거: (주), ㈜, 주식회사, (株), Inc., Inc, Co., Ltd."
+    - "괄호 주석 분리: '(기회 미생성)'·'(보험설계지원/자동차보상)' 같은 상태·BD 주석은 이름에서 떼어 별도 필드로"
+  note: >-
+    정규화는 매칭 키를 만들 때만 쓰고, Evidence 와 raw_names 에는 원문 표기를 그대로 보존한다.
+
+# ==========================================================================
+# 1. 고객사 (Account)
+# ==========================================================================
+accounts:
+  # --- 활동일지·주간계획 내부의 표기 변형 (xlsx 실측) ---
+  - canonical: 가나은행
+    variants: [가나은행]
+    basis: "주간계획 5.·6. 표는 '가나은행', 활동일지 날짜별 시트·일일보고 2.는 '가나은행'. 같은 은행."
+    seen_in:
+      [
+        "활동일지!7월13일~16일",
+        "활동일지!7월6일~10일",
+        "활동일지!일일보고(2.)",
+        "주간계획!5.",
+        "주간계획!6.",
+        "활동일지!홍길동",
+      ]
+
+  - canonical: 두리생명
+    variants: [두리생명]
+    basis: "접미사 축약. 주간계획 6.은 '두리생명', 활동일지 홍길동 시트는 '두리생명'."
+
+  - canonical: 나래생명
+    variants: [나래생명]
+    basis: "접미사 축약. 슬랙 증분 0812 의 #all-영업활동공유 제목은 '나래생명', 기존 그래프 계정은 '나래생명'. 같은 법인(두 생명보험사의 통합사)."
+
+  - canonical: 누리손해보험
+    variants: [누리손해보험]
+    basis: "NH 접두 유무 차이. 활동일지 일일보고 5.는 '누리손해보험', 일일보고 2.·이영희 시트는 '누리손해보험'."
+    caution: "'누리생명보험'(박민수 시트)은 다른 법인이다. do_not_merge 참조."
+
+  - canonical: 모다패션
+    variants: [모다패션]
+    basis: "일일보고 5. 는 '모다패션 / 제안 / 1.9억 / 0.25', 주간계획 5.·6.과 활동일지 홍길동·7월6일~10일은 '모다패션'. 같은 딜(RFP 결과 발표가 모다패션 내부 결재 일정으로 연기)."
+
+  - canonical: 두루쇼핑
+    variants: ["두루쇼핑(기회 미생성)"]
+    basis: "괄호는 SFDC 기회 생성 여부 주석이지 회사명의 일부가 아니다."
+    parenthetical_field: sfdc_note
+
+  - canonical: 하늘문고
+    variants: ["하늘문고(기회 미생성)"]
+    basis: "위와 같음."
+    parenthetical_field: sfdc_note
+
+  - canonical: 미르손해보험
+    variants: ["미르손해보험 (보험설계지원/자동차보상)"]
+    basis: "괄호는 그 행의 BD 주석이다. 일일보고 6.에서만 붙는다."
+    parenthetical_field: bd_note
+
+  - canonical: 다라카드
+    variants: []
+    split_into_deals:
+      - {
+          deal_scope: 자동차,
+          raw: "다라카드 자동차",
+          seen_in: "활동일지!일일보고(5.)",
+        }
+      - {
+          deal_scope: 채권,
+          raw: "다라카드 채권",
+          seen_in: "활동일지!일일보고(5.)",
+        }
+    basis: >-
+      같은 고객사의 다른 딜(부서)이다. Account 3개가 아니라 Account 1개 + Deal 2개로 분해한다.
+      바다손해보험 제안서의 확산 경로 기술과도 일치한다(고객센터 → 온라인영업팀·마이카플랫폼팀·금융기획팀 → 채권기획팀 → 심사발급팀).
+
+  # --- Slack 실측 표기 변형 (법인 접두·접미) ---
+  - {
+      canonical: 늘품통상,
+      variants: ["늘품통상(주)", 늘품통상주식회사],
+      basis: "법인 접미 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 다솜텔레콤,
+      variants: ["다솜텔레콤(주)"],
+      basis: "법인 접미 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 메디온에이아이,
+      variants: ["메디온 AI", "메디온에이아이(주)"],
+      basis: "한글 음차와 영문 약칭 혼용 + 법인 접미",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 누리페이,
+      variants: ["(주)누리페이", "주식회사 누리페이"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 드림런,
+      variants: ["(주)드림런", "주식회사 드림런"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 미리내컴즈,
+      variants: ["(주)미리내컴즈", "주식회사 미리내컴즈"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 리듬컴퍼니,
+      variants: ["(주)리듬컴퍼니"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 우산보험중개,
+      variants: ["(주)우산보험중개"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 미르에버텍,
+      variants: ["주식회사 미르에버텍"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 하람글로벌,
+      variants: ["㈜하람글로벌", "주식회사 하람글로벌"],
+      basis: "법인 접두 표기 차이",
+      seen_in: ["slack!리드등록알림"],
+    }
+  - {
+      canonical: 인디고코리아,
+      variants: ["인디고코리아"],
+      basis: "영문 상호와 한글 음차. 활동일지 박민수 시트에도 '인디고코리아'로 등장",
+      seen_in:
+        ["slack!리드등록알림", "slack!all-영업활동공유", "활동일지!박민수"],
+    }
+  - {
+      canonical: "터전정보",
+      variants: ["터전정보"],
+      basis: "마침표 유무",
+      seen_in: ["slack!all-영업활동공유"],
+    }
+  - {
+      canonical: 봄빛에이아이,
+      variants: ["봄빛AI"],
+      basis: "한글 음차와 영문 약칭",
+      seen_in: ["slack!all-영업활동공유"],
+    }
+  - {
+      canonical: 파트너A,
+      variants: ["파트너A(Lomin)"],
+      basis: "괄호 안은 영문 상호",
+      seen_in: ["slack!all-영업활동공유", "BD Overview!진척도!H3"],
+    }
+  - {
+      canonical: 누리케미그룹,
+      variants: ["누리케미그룹(가온테크놀로지)"],
+      basis: "괄호는 계열사 주석",
+      seen_in: ["slack!all-영업활동공유", "활동일지!7월13일~16일"],
+    }
+  - {
+      canonical: "솔뫼서비스",
+      variants: ["피에스앤마케팅(솔뫼서비스)"],
+      basis: "정식 상호와 약칭",
+      seen_in: ["slack!all-영업활동공유"],
+    }
+  - {
+      canonical: 미소퍼스트코리아,
+      variants: [미소퍼스트, "주식회사 미소퍼스트코리아"],
+      basis: "법인 접두 + 국가 접미 축약",
+      seen_in: ["slack!리드등록알림"],
+      needs_human_confirm: true,
+      confirm_reason: "'미소퍼스트'가 '미소퍼스트코리아'의 축약인지 별개 법인인지 확인되지 않았다.",
+    }
+  - {
+      canonical: 집보금,
+      variants: ["집보금 스마트홈", "집보금(스마트홈)"],
+      basis: "괄호·공백은 사업부 주석으로 보인다",
+      seen_in: ["slack!all-영업활동공유"],
+      needs_human_confirm: true,
+      confirm_reason: "'스마트홈'이 사업부인지 별도 법인인지 미확인. 병합 시 Deal 을 분리해야 할 수 있다.",
+    }
+
+exclusions:
+  - value: "내부 보고(법인폰)"
+    where: "활동일지!일일보고(6.) 고객사 열"
+    reason: "내부 업무 항목이 고객사 열에 들어갔다. Account 로 만들지 않는다."
+  - value: ":e-mail: 이메일:"
+    where: "slack!리드등록알림 (F1 구형 폼)"
+    reason: "회사명이 빈 값일 때 다음 줄 라벨을 값으로 먹은 추출 잡음. 값은 같은 줄에서만 취해야 한다."
+  - values: ["오로라소프트", "오로라소프트", "주식회사 오로라소프트"]
+    where: "slack!리드등록알림"
+    reason: "자사다. 리드 테스트 데이터로 등록된 건이 실재한다. Account 로 만들지 않고 account_kind=self 로만 기록한다."
+  - value: "금주주간활동(홍길동)"
+    where: "주간계획!6. 표 파싱 결과"
+    reason: "블록 앵커가 B/C 열을 오가서 고객사 값으로 잘못 수집되는 것을 실제로 관측했다. 파서 함정이지 회사명이 아니다."
+  - values:
+      ["A 손해보험사", "B 손해보험사", "C 손해보험사", "A손해보험", "B캐피탈"]
+    where: "documents!소미생명 제안서 · 오로라소프트 종합소개서(금융·비금융) p6"
+    reason: >-
+      대외 자료가 일부러 익명화한 이름이다. 어느 법인인지 자료에 없으므로 Account 로 만들면
+      실체 없는 계정이 늘고, 실명 계정에 이으면 그것은 추측이다. 성과 수치는 발췌로 남으니
+      사실은 보존된다. `looks_like_company` 는 '손해보험사'·'캐피탈' 접미사를 회사로 보므로
+      규칙만으로는 걸러지지 않는다.
+
+# ==========================================================================
+# 2. 절대 병합하면 안 되는 쌍 (오병합 차단 케이스)
+#    각 항목의 canonical 은 서로 완전히 달라야 한다. validate_contracts.py 가 검사한다.
+# ==========================================================================
+do_not_merge:
+  - pair: [마바손해보험, 마바캐피탈]
+    reason: "접두어 '하나'만 같고 전혀 다른 법인이다. REVISED §6 A4 의 명시적 차단 케이스."
+    evidence: "마바손해보험은 pain 34건 + 활동일지 4곳, 마바캐피탈은 활동일지 홍길동 시트 + 별도 제안서('마바캐피탈 오로라웍스 솔루션소개.pptx.pdf')."
+  - pair: [마바손해보험, 가람은행]
+    reason: "다른 법인."
+  - pair: [마바손해보험, 마바증권]
+    reason: "다른 법인."
+  - pair: [마바손해보험, 마바카드]
+    reason: "다른 법인."
+  - pair: [가람은행, 마바투어]
+    reason: "다른 법인. Slack #all-영업활동공유에 둘 다 등장."
+  - pair: [가나손해보험, 가나은행]
+    reason: "다른 법인. Slack 제목 첫 토큰 빈도 가나손해보험 37 / 가나은행 15 로 둘 다 활발한 별개 딜."
+  - pair: [가나손해보험, 가나금융지주]
+    reason: "다른 법인."
+  - pair: [가나은행, 가나카드]
+    reason: "다른 법인."
+  - pair: [가나금융지주, 가나데이타시스템]
+    reason: "다른 법인."
+  - pair: [바람생명, 바람화재]
+    reason: "다른 법인. 둘 다 활동일지·주간계획·Slack 에 별도로 등장."
+  - pair: [바람생명, 바람증권]
+    reason: "다른 법인."
+  - pair: [바람화재, 바람카드]
+    reason: "다른 법인."
+  - pair: [바람카드, 바람SDS]
+    reason: "다른 법인. 바람SDS 는 Slack 참석자 표기('바람SDS : 김온새 프로 외 1명')로만 등장하는 SI 사업자."
+  - pair: [다라은행, 다라카드]
+    reason: "다른 법인."
+  - pair: [다라카드, 다라생명]
+    reason: "다른 법인."
+  - pair: [다라투자증권, 바다손해보험]
+    reason: "다른 법인."
+  - pair: [미르손해보험, 미르자동차]
+    reason: "다른 법인."
+  - pair: [미르카드, 미르캐피탈]
+    reason: "다른 법인."
+  - pair: [미르백화점, 미르리바트]
+    reason: "다른 법인."
+  - pair: [사아캐피탈, 마루캐피탈]
+    reason: >-
+      가장 위험한 쌍이다. 이름에 '우리캐피탈'이 겹치지만 완전히 다른 회사다.
+      사아캐피탈은 이미 구축 완료 고객(pain 31건)이고, 마루캐피탈은 검토 단계 고객이면서
+      동시에 AI QA 데모 시나리오(62p)의 대상이다.
+  - pair: [두레은행, 사아금융저축은행]
+    reason: "다른 법인."
+  - pair: [터전손해보험, 터전증권]
+    reason: "다른 법인."
+  - pair: [터전손해보험, "터전정보"]
+    reason: "다른 법인. 터전정보는 Slack 에만 등장."
+  - pair: [터전캐피탈, 터전생명]
+    reason: "다른 법인."
+  - pair: [누리손해보험, 누리생명보험]
+    reason: "손보와 생보는 별개 법인. 활동일지 이영희 시트와 박민수 시트에 각각 등장."
+  - pair: [하늘IT, 하늘생명]
+    reason: "다른 법인. 하늘IT 는 IT 자회사이고 GQ-D6 의 대상이다."
+  - pair: [하늘IT, 하늘문고]
+    reason: "다른 법인."
+  - pair: [늘봄캐피탈, 늘봄화재]
+    reason: "다른 법인."
+  - pair: [도담생명, 도담손해보험]
+    reason: "다른 법인. 활동일지에서 도담생명은 이영희, 도담손해보험은 홍길동 담당."
+  - pair: [한빛상사, 한빛물산]
+    reason: >-
+      자동 병합 금지의 실물 증거. Slack #리드등록알림에서 marketingtft 봇이 실제로 두 회사를 같은 회사로 오인했고
+      사람이 정정한 기록이 남아 있다.
+  - pair: ["(주)구름소프트", 가온에듀]
+    reason: >-
+      이메일 도메인만 cloudsoft 였던 건. 봇이 구름소프트로 기업정보를 보강했고 사람이 '구름소프트 아님, 이메일 도메인만 그렇다'로 정정했다.
+      도메인 기반 회사 추정 금지의 근거.
+  - pair: ["(주)구름소프트", 구름엔터프라이즈]
+    reason: "다른 법인."
+  - pair: [구름은행, 구름페이손해보험]
+    reason: "다른 법인."
+  - pair: ["Knowledge.AccessType", "Label.AccessType"]
+    domain: product_term
+    reason: "glossary §6·§13. 이름이 같은 별개 enum 이다. 제품 도메인의 오병합 차단 케이스."
+  - pair: ["할일(work)", "업무(omniChannel)"]
+    domain: product_term
+    reason: "glossary §13. talkcore work 모듈은 문서 링크·읽음 상태 추적이고 '업무'는 향후 신설 개념이다. 섞으면 안 된다."
+
+# 오타로 보이지만 자동 병합하지 않는다. 1B(B4) 승인 CLI 로 사람이 판단한다.
+review_queue_seed:
+  - candidate: 늘봄캐피털
+    likely_canonical: 늘봄캐피탈
+    where: "활동일지!홍길동"
+    reason: "오타로 보인다('츠'→'트'). REVISED §6 B4 의 명시적 케이스 — 자동 병합되지 않고 큐로 가야 한다."
+  - candidate: 온새미벵크
+    likely_canonical: 온새미뱅크
+    where: "slack!all-영업활동공유"
+    reason: "오타로 보인다."
+  - candidate: 두레마을고중앙회
+    likely_canonical: 두레마을금고중앙회
+    where: "slack!all-영업활동공유"
+    reason: "'금' 누락 오타로 보인다."
+  - candidate: "씨엑스텍(?)"
+    likely_canonical: null
+    where: "slack!리드등록알림"
+    reason: "원문에 물음표가 붙어 있다. 작성자 자신도 확신하지 못한 표기."
+  - candidate: "자람브로우(예상)"
+    likely_canonical: null
+    where: "slack!리드등록알림"
+    reason: "원문에 '(예상)'이 붙어 있다."
+  - candidate: "타켓고객"
+    likely_canonical: "타겟고객"
+    where: "활동일지 사람별 시트 G열(단계) 21회"
+    domain: enum_value
+    reason: "enum 값 오타지만 원문 그대로 21회 쓰인다. 정규화하되 Evidence 원문은 보존한다."
+
+# ==========================================================================
+# 3. 모호어 — 자동 매핑 금지 (매핑하면 틀린다)
+# ==========================================================================
+ambiguous_terms:
+  - term: GA
+    slack_frequency: 250
+    candidates: [bd.insurance_planning_support, bd.insurance_sales]
+    do_not_auto_map: true
+    reason: >-
+      GA(General Agency, 법인보험대리점)는 BD 이름이 아니다.
+      보험설계지원의 Guest 역할('외부 모집사(GA) 설계사')이면서 동시에 보험영업의 타겟기업('보험사/GA')이다.
+      LeadFlow 구분 규칙: "보험사가 GA 설계사를 지원 → 보험설계지원 / 설계사가 고객에게 판매 → 보험영업".
+      토큰만으로는 구분 불가하므로 문맥 없이 BD 를 붙이지 않는다.
+  - term: 설계사
+    slack_frequency: 76
+    candidates: [bd.insurance_planning_support, bd.insurance_sales]
+    do_not_auto_map: true
+    reason: "GA 와 같은 이유. 보험설계지원의 Guest 이자 보험영업의 BR 이다."
+  - term: 상담
+    candidates: [bd.contact_center]
+    do_not_auto_map: true
+    reason: "bd-seed.yaml activity_log_domain_map 참조. 74회로 최다지만 BD 고객센터인지 레거시 상담 사업인지 미확정."
+  - term: CS
+    candidates: [bd.contact_center]
+    do_not_auto_map: false
+    reason: "멀티BM 시트가 CS를 전 업권 공통 BD로 명시하고 BM 정의의 '고객센터'와 대응한다. 매핑해도 된다."
+  - term: WM
+    slack_frequency: 11
+    candidates: [bd.wealth_management]
+    do_not_auto_map: false
+    reason: "BD Overview 3개 시트가 같은 타겟기업으로 대응시킨다. 단 단어경계 매칭 필수."
+  - term: TM
+    slack_frequency: 46
+    candidates: [bd.tm]
+    do_not_auto_map: false
+    reason: "단어경계 없이 부분일치로 세면 440회로 부풀려진다(실측). 반드시 단어경계 매칭."
+
+# ==========================================================================
+# 4. 경쟁사 (Competitor)
+# ==========================================================================
+competitors:
+  - canonical: 협업툴A
+    kind: vendor
+    variants: []
+    evidence: "[자차캐피탈]자동차금융_협업_솔루션_도입추진(안).docx === [TABLE 5] === 경쟁 비교표"
+  - canonical: 협업툴B
+    kind: vendor
+    variants: [협업툴B]
+    evidence: "위와 같은 표"
+    needs_human_confirm: true
+    confirm_reason: "'협업툴B' 표기는 표에서 확인되지 않았다. 영문 상호 추가는 근거 확인 후."
+  - canonical: 협업툴C
+    kind: vendor
+    variants: []
+    evidence: "위와 같은 표"
+  - canonical: 협업툴D
+    kind: vendor
+    variants: []
+    evidence: "위와 같은 표"
+  - canonical: 한울SI
+    kind: partner
+    variants: []
+    evidence: >-
+      Slack #all-영업활동공유 제목 첫 토큰 24회(예: '[한울SI - 누리손해보험 견적 관련 협의]',
+      '누리손해보험 견적 관련 예산 이슈로 재견적 요청 / 제 3의 업체 컨택 가능성 언급'). 활동일지 7월6일~10일에도 등장.
+    needs_human_confirm: true
+    confirm_reason: "파트너(고객사 SI 사업자)이자 가격 압박의 상대다. competitor_kind 를 partner 로 둘지 vendor 로 둘지 사람이 정해야 한다."
+  - canonical: SI(일반)
+    kind: vendor
+    variants: []
+    evidence: "SI 대비 오로라웍스 경쟁력 비교 분석(요약).docx.pdf 전체. 특정 업체명이 아니라 '순수 SI' 라는 대안 방식."
+    note: "회사가 아니라 대안 구축 방식이다. Competitor 노드로 만들지 여부는 사람 확인 필요."
+    needs_human_confirm: true
+  - canonical: 자체 구축(내재화)
+    kind: in_house
+    variants: []
+    evidence: "v1.0 §D-1 competitor_kind 정의에 '내재화(너른자산 자체 구축)' 예시. 다만 이번 R0 실측 문서 23종에서 그 문장의 원문은 확인하지 못했다."
+    needs_human_confirm: true
+    confirm_reason: "원문 근거를 이번 실측에서 찾지 못했다(미확인). 근거를 확인하기 전에는 노드로 만들지 않는다."
+
+# ==========================================================================
+# 5. 파트너사 (Account.account_kind = partner)
+# ==========================================================================
+partners:
+  - {
+      canonical: 파트너A,
+      variants: ["파트너A(Lomin)"],
+      bd_ids: [bd.insurance_planning_support],
+      evidence: "BD Overview!진척도!H3 '파트너A, 파트너B'",
+    }
+  - {
+      canonical: 파트너B,
+      variants: [],
+      bd_ids: [bd.insurance_planning_support],
+      evidence: "BD Overview!진척도!H3. Slack #all-영업활동공유 제목에도 등장",
+    }
+  - {
+      canonical: "한결CNC",
+      variants: [],
+      bd_ids: [bd.debt_collection],
+      evidence: "BD Overview!진척도!H5. Slack #all-영업활동공유 제목에도 등장",
+    }
+  - {
+      canonical: 파트너C,
+      variants: [],
+      bd_ids: [bd.retirement_pension],
+      evidence: "BD Overview!진척도!H7",
+    }
+  - {
+      canonical: "한울텔레콤",
+      variants: [한울텔레콤],
+      bd_ids: [bd.food_service_distribution],
+      evidence: "BD Overview!진척도!H11. 활동일지 박민수 시트는 '한울텔레콤' 표기",
+    }
+  - canonical: 하늘IT
+    variants: []
+    bd_ids: []
+    evidence: "하늘IT 협업 관련 검토 사항.pdf — AI 기반 통합 상담 솔루션 공동 개발 / AWS BOX / AI Summit 공동 참가"
+    note: "파트너이자 잠재 채널(하늘 계열 서비스사, 신용정보사, 쇼핑몰 채널). 동시에 GQ-D6 rare-critical 의 대상."
+
+# ==========================================================================
+# 6. 제품·기능 용어 (glossary 근거)
+# ==========================================================================
+product_terms:
+  products:
+    - {
+        canonical: "오로라웍스",
+        variants: ["오로라웍스", 오로라웍스, 오로라 스위트 오로라웍스],
+        generation: current,
+        evidence: "Slack 4채널 89회, 기능맵 v2.1 시트 r1 '오로라웍스 Function Map (v2.1)'",
+      }
+    - {
+        canonical: 오로라원,
+        variants: [오로라원 엔게이저],
+        generation: legacy,
+        evidence: "Slack 4채널 110회. 공적내용양식(다라카드) '구축 제품 오로라원 엔게이저'",
+      }
+    - {
+        canonical: 오로라봇,
+        variants: [],
+        generation: current,
+        evidence: "Slack 4채널 53회. AI 제품명",
+      }
+    - {
+        canonical: "오로라웍스 메일",
+        variants: [],
+        generation: new_feature,
+        evidence: "B2B 메일(퇴직연금 대상) 소개서.pptx SLIDE 7·17",
+      }
+  glossary_pairs_file: data/raw_probe/glossary-pairs.tsv
+  glossary_pairs_count: 104
+  key_mappings:
+    - {
+        ko: 센터,
+        en: Center,
+        note: "Partition 과 동일 개념. 반드시 같은 canonical 로 묶는다(glossary §2)",
+      }
+    - { ko: 파티션, en: Partition, canonical_of: Center }
+    - {
+        ko: 파트너,
+        en: Partner,
+        note: "외부 협력 사용자. Respondent.PARTNER 와 별개 맥락",
+      }
+    - { ko: 티켓, en: Ticket }
+    - { ko: 그룹톡, en: GroupTalk, note: "협업 대화. 기능맵 H열의 축" }
+    - { ko: 고객 상담 대화, en: CSTalk, note: "LiveTalk. 기능맵 G열의 축" }
+    - { ko: 지식베이스, en: Knowledge }
+    - {
+        ko: 비즈니스 폼,
+        en: Bizform,
+        note: "제안서에서는 '비즈폼(BizForm)'으로 표기",
+      }
+    - {
+        ko: 할일,
+        en: work,
+        note: "talkcore work 모듈 = 문서 링크·읽음 상태 추적. '업무'가 아니다",
+      }
+    - {
+        ko: 앱채널,
+        en: Channel,
+        note: "웹챗·카톡·이메일. 일반 채팅방이 아니다",
+      }
+  homonym_warnings:
+    - term: 상담원
+      maps_to: ["UserType.AGENT", "BtalkActorType.ASSIGNEE", "Respondent.AGENT"]
+      reason: "glossary §13. 맥락(역할 / 대화 전환 / 폼)에 따라 3개 식별자로 갈린다. 단일 canonical 로 묶으면 틀린다."
+    - term: 토픽
+      maps_to: ["Topic(§2 지식·FAQ 분류)", "Topic(§6 분류 카테고리)"]
+      reason: "같은 객체의 다른 의미. 원문 표기는 '토픽/카테고리'."
+    - term: 사용자
+      reason: "협업 대화(그룹톡·옴니채널) 문서·UI 에서는 '상담사' 대신 '사용자'로 표기한다(glossary §13 표기 규칙)."

@@ -1,0 +1,875 @@
+# BusinessDomain 시드 (A0 확정판)
+#
+# 정본: data/sources/wiki/BD Overview.xlsx — 7시트 전량을 openpyxl(data_only=True)로 직접 열어 확인했다.
+# 보조 정본: LeadFlow_BD분류_프롬프트.md §3 (BD 15개 정의문 + "BD가 아닌 것" 금지 목록)
+#
+# 왜 20개인가
+#   BM 정의 시트는 14개 BD만 정의한다(r3~r19, 퇴직연금·신용평가가 다중행이라 행 수는 17).
+#   시장사이즈·진척도·기대효과 시트는 BM 정의에 없는 이름 6개(제조·식자재유통·물류·렌털·프랜차이즈·플랫폼)를 BD 행으로 다룬다.
+#   시장사이즈 각주 r20 원문: "** 새롭게 정의된 BM 기준으로는 시장 사이즈가 모호할 수 있기에 당분간 유지"
+#   진척도 각주 r25 / 기대효과 각주 r21 원문: "** 새롭게 정의된 BM 기준으로 개척 활동 진행 후 판단 필요"
+#   → 신·구 명칭이 2벌로 병존한다는 사실은 원문에 명시돼 있지만, "신 A = 구 B" 매핑표는 어느 시트에도 없다.
+#   그래서 14 + 6 = 20개를 각각 노드로 두고, 확실한 표기 변형만 aliases 로 묶었다.
+#   추정에 불과한 신↔구 대응은 절대 aliases 에 넣지 않고 merge_hypothesis + needs_human_confirm 으로 분리했다.
+#
+# 값 표기 규칙
+#   market_size_note / target_company_detail 은 원문 문자열 그대로다(숫자가 아니다). "\n"은 " / "로 폈다.
+#   maturity 는 진척도 시트 값 그대로(✔ / 제외 / null). ⚠️ 범례 r20·r21이 같은 "✔" 기호에
+#   "완료"와 "보완필요" 두 라벨을 달아 두어 값만으로는 구분할 수 없다(색상 구분 추정, data_only 로는 미확인).
+
+version: "1.0.0"
+source_id: src_bd_overview
+generated_by: A0
+bd_count: 20
+
+meta:
+  bd_count_conflict:
+    observed:
+      - { value: 14, where: "BD Overview.xlsx / BM 정의 시트 r3~r19" }
+      - {
+          value: 14,
+          where: "Q&A로 이해하는 고객의 고민...html / INTRO 카드·APPENDIX '우리 솔루션이 공급되는 14개 업무 도메인'",
+        }
+      - {
+          value: 15,
+          where: "LeadFlow_BD분류_프롬프트.md §3 '아래 15개 중 하나를 고릅니다'(기타 포함)",
+        }
+      - {
+          value: 15,
+          where: "BD Overview.xlsx / 시장사이즈·진척도 시트 각 15행",
+        }
+      - { value: 20, where: "REVISED-MASTER-PLAN §3 시드 목록" }
+    note: >-
+      세 목록이 서로 부분집합 관계도 아니다. LeadFlow 는 "기타"를 BD 로 세고, 마스터플랜 시드에는 "플랫폼(제외 표기)"이 들어 있다.
+      개수 자체가 문서마다 다르다는 사실을 지우지 말고 그대로 보존한다.
+  leadflow_forbidden_bd_labels:
+    values:
+      [
+        제조,
+        물류,
+        렌털,
+        프랜차이즈,
+        식자재유통,
+        플랫폼,
+        커머스,
+        의료,
+        공공,
+        교육,
+      ]
+    quote: "아래는 BD가 아니라 BD의 타겟기업 유형입니다. 절대 bd 값으로 쓰지 마십시오."
+    locator: "LeadFlow_BD분류_프롬프트.md#3-판정-1"
+    conflict: >-
+      BD Overview 의 시장사이즈·진척도·기대효과 시트는 이 6개(제조·물류·렌털·프랜차이즈·식자재유통·플랫폼)를 BD 행으로 취급한다.
+      두 정본이 정면으로 충돌한다. 아래 해당 BD 항목에 needs_human_confirm: true 로 표시했다.
+
+business_domains:
+  - id: bd.insurance_planning_support
+    name: 보험설계지원
+    aliases: ["보험설계지원 (상세 자료)", "보험설계"]
+    alias_basis:
+      - "시장사이즈 B3 '보험설계지원 / (상세 자료)' — 괄호는 첨부자료 주석이지 이름이 아니다"
+      - "활동일지 E열(업무 도메인) '보험설계' 21회 — 접미사 '지원' 누락. 같은 시트 D열 업권이 전부 보험사"
+    industry_scope: 금융
+    target_company: 보험사
+    br_role: 설계매니저
+    guest_role: 외부 모집사(GA) 설계사
+    work_desc: 보험설계지원 요청 및 응대
+    market_size_note: "80억 ~ 100억 / (4억 기준)"
+    target_company_size_note: "보험사 / 20~25개사"
+    target_company_detail: "손해보험사(10~11개) : 바람, 늘봄, 터전, 미르, 가나, 들찬, 이음, 수리, 도담 등 / 생명보험사(14~15개) : 바람, 들찬, 하늘, 다라, 두리, 너른, 이음, 도담, 소미, 터전 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: "✔",
+        시장배분_여부: "✔",
+        제품지원_여부: "✔",
+      }
+    channel_type: 상시
+    guest_control: 불가
+    bd_status: 관리
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "비용 절감(업무생산성)",
+        "컴플라이언스 준수",
+        "소통 통합, 자산화",
+      ]
+    partners: [파트너A, 파트너B]
+    needs_human_confirm: false
+
+  - id: bd.auto_finance
+    name: 자동차금융
+    aliases: ["자동차금융 (상세 자료1, 2)"]
+    alias_basis:
+      [
+        "시장사이즈 B4 '자동차금융 / (상세 자료1, 2)'",
+        "활동일지 E열 '자동차금융' 13회 — 문자열 그대로 일치",
+      ]
+    industry_scope: 금융
+    target_company: (여신)금융사
+    br_role: 업무지원 담당자
+    guest_role: 외부 모집사(AG, 신차/중고차 딜러) / 영업직원
+    work_desc: 금융상품 문의 및 응대
+    market_size_note: "120억 ~ 140억 / (3.5억 기준)"
+    target_company_size_note: "(여신)금융사 / 35~40개사"
+    target_company_detail: "캐피탈사(15~20개) : 미르, 가나, 마바, 사아금융, 다라, 바다, 마루, 누리, 수리, 자차, 늘봄, 미리내, 오름, 달구 등 / 카드사(7~8개) : 다라, 바람, 가나, 미르, 수리, 두레, 마바, 새봄 / 은행(9~10개) : 가나, 다라, 두레, 가람, 누리, 마루, 새만금, 구름, 번개, 바람 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: "✔",
+        시장배분_여부: "✔",
+        제품지원_여부: "✔",
+      }
+    channel_type: 상시
+    guest_control: 불가
+    bd_status: 관리
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "비용 절감(업무생산성)",
+        "컴플라이언스 준수",
+        "소통 통합, 자산화",
+      ]
+    partners: []
+    needs_human_confirm: false
+
+  - id: bd.debt_collection
+    name: 채권추심
+    aliases: ["채권추심(구상권)"]
+    alias_basis:
+      [
+        "멀티BM C3 '공통 : 보험설계지원, TM, CS, 채권추심(구상권), 퇴직연금(일부)' — 괄호는 보험사 맥락의 하위 유형 표기",
+      ]
+    industry_scope: 금융
+    target_company: (여신)금융사/신용정보사
+    br_role: 채권추심 담당자
+    guest_role: 채무자
+    work_desc: 추심 관련 안내 및 응대
+    market_size_note: "120억 / (3억 기준)"
+    target_company_size_note: "(여신)금융사/신용정보사 / 보수적으로 약 40개사"
+    target_company_detail: "카드사(8개) : 다라, 바람, 가나, 미르, 수리, 두레, 마바 / 은행(약 20개) : 가나, 다라, 두레, 가람, 누리, 마루 등 / 캐피탈사(약 50개) : 미르, 가나, 마바, 사아금융, 바다, 누리 등 / 채권추심 신용정보사(22~23개) : 가나, 다라, 마바, 사아금융, 마루, 고운, 나루, 새한빛, 미래로, 새하 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: "✔",
+        시장배분_여부: "✔",
+        제품지원_여부: "✔",
+      }
+    channel_type: 온디맨드
+    guest_control: null
+    bd_status: 관리
+    expected_effects: ["매출 증대(세일즈)", "연결율 향상", "소통 통합, 자산화"]
+    partners: ["한결CNC"]
+    needs_human_confirm: false
+
+  - id: bd.tm
+    name: TM
+    aliases: []
+    industry_scope: 금융
+    target_company: 금융사
+    br_role: 마케팅부서
+    guest_role: (세일즈대상)고객
+    work_desc: 세일즈 대상 고객 아웃바운드
+    market_size_note: "180억 ~ 210억 / (3억 기준)"
+    target_company_size_note: "금융사 / 60~70개사"
+    target_company_detail: "생명보험사(약 18~20개) : 도담, 아정, 다라, 터전, 동녘, 이음, 가나, 하늘 등 / 손해보험사(약 12~14개) : 늘봄, 터전, 바람, 미르, 가나, 들찬, 아솔, 에인 등 / 카드사(8개) : 다라, 바람, 가나, 미르, 수리, 두레, 마바, 새봄 / 캐피탈/저축은행(약 20~30개) : 새벽, 오케, 마중, 파도, 미르, 가나, 마루 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: 온디맨드
+    guest_control: null
+    bd_status: 관리
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "컴플라이언스 준수",
+        "연결율 향상",
+        "소통 통합, 자산화",
+      ]
+    partners: []
+    needs_human_confirm: false
+    note: >-
+      Slack 4채널 문자열 빈도에서 'TM'은 단어경계 기준 46회지만 부분일치로 세면 440회로 부풀려진다(ATM·TMS 등).
+      토큰 매칭 시 반드시 단어경계를 건다.
+
+  - id: bd.retirement_pension
+    name: 퇴직연금
+    aliases: ["퇴직연금 (상세 자료)", "퇴직연금(일부)"]
+    alias_basis:
+      [
+        "시장사이즈 B7",
+        "멀티BM C3·C7·C11 '퇴직연금(일부)' — 괄호는 해당 업권에서 일부만 해당한다는 범위 주석",
+      ]
+    industry_scope: 금융
+    target_company: 퇴직연금사업자
+    br_role: "업무지원팀 / RM / 고객지원·자산관리센터"
+    guest_role: "기업HR / 재무·인사 / 가입자"
+    work_desc: "업무처리 / 계약관리 및 지원 / 자산관리"
+    br_guest_multirow: true
+    br_guest_multirow_note: "BM 정의 r7~r9 3행이 C7:C9 병합으로 한 BD에 묶인다. BR·Guest·업무가 3쌍이다."
+    market_size_note: "172억 / (4억 기준)"
+    target_company_size_note: "퇴직연금사업자 / 43개사"
+    target_company_detail: "은행(13개) : 가나, 다라, 두레, 가람, 누리, 마루, 큰길 등 / 증권사(14개) : 너른자산, 바람, 바다, 누리투자, 가나, 다라투자, 마바, 두레투자, 미르차, 대들보, 유하, 들찬투자 등 / 생명보험사(12개) : 바람, 들찬, 하늘, 너른자산, 다라, 가나, 터전, 동녘, 이음, 마루연금, 두리, 소미 / 손해보험사(4~5개) : 바람, 터전, 미르, 가나, 수리 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: "✔",
+        제품지원_여부: "✔",
+      }
+    channel_type: 상시
+    guest_control: 불가
+    bd_status: 관리
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "비용 절감(업무생산성)",
+        "컴플라이언스 준수",
+        "연결율 향상",
+        "소통 통합, 자산화",
+      ]
+    partners: [파트너C]
+    needs_human_confirm: false
+
+  - id: bd.wealth_management
+    name: 자산관리
+    aliases: ["(증권사)WM", "WM"]
+    alias_basis:
+      - "BM 정의 C10 '자산관리' 타겟기업 D10 '(증권)금융사' ↔ 시장사이즈 B8 '(증권사)WM' 타겟기업 C8 '(증권)금융사' — 타겟기업 문자열이 일치"
+      - "진척도 B8·기대효과 B9 도 '(증권사)WM' 로 같은 위치(9행 중 6번째)"
+      - "멀티BM C7 '증권사 → WM, 퇴직연금(일부), CS' — 증권사 축의 BD 로 WM 등장"
+    industry_scope: 금융
+    target_company: (증권)금융사
+    br_role: "(디지털)PB/지점WM/ / 자산관리센터"
+    guest_role: (세일즈대상)고객
+    work_desc: 자산관리
+    market_size_note: "60억 ~ 75억 / (증권사, 3억 기준)"
+    target_company_size_note: "(증권)금융사 / 증권사 20~25개사, 총 45개사 이상"
+    target_company_detail: "증권사(20~25개) : 바람, 너른자산, 바다, 누리투자, 가나, 다라, 마바, 대들보, 유하, 가온, 미르차, 늘봄, 두레투자 등 / 은행(15~17개) : 가나, 다라, 두레, 가람, 누리, 마루, 큰길, 성찬, 시티온, 바다, 열매 등 / 보험사(약 10개) : 바람생명/화재, 들찬생명, 하늘생명, 다라생명, 미르손해보험, 터전손해보험 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: 상시
+    guest_control: 불가
+    bd_status: 관리
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "컴플라이언스 준수",
+        "연결율 향상",
+        "소통 통합, 자산화",
+      ]
+    partners: []
+    needs_human_confirm: false
+
+  - id: bd.accident_compensation
+    name: (사고)보상
+    aliases: ["보상"]
+    alias_basis:
+      - "BM 정의 C11 '(사고)보상' 타겟기업 D11 '(손해)보험사' ↔ 시장사이즈 B9 '보상' 타겟기업 C9 '(손해)보험사' — 타겟기업 문자열 일치"
+      - "전략매출 B3·Guest통제 B3·기대효과 B10 모두 '보상' 표기"
+    industry_scope: 금융
+    target_company: (손해)보험사
+    br_role: 보상처리 담당자
+    guest_role: 보상 요청 고객
+    work_desc: 보상 절차 안내 및 문의 응대
+    market_size_note: "120억 ~ 135억 / (3억 기준)"
+    target_company_size_note: "(손해)보험사 / 40~45개사"
+    target_company_detail: "손해보험사(15~18개) : 바람, 터전, 미르, 가나, 늘봄, 들찬, 이음, 수리, 두레, 아솔, 마바, 당근 등 / 생명보험사(22~25개) : 바람, 들찬, 하늘, 너른자산, 다라, 가나, 터전, 동녘, 이음, 아정, 도담 등 / 공제조합(5~6개) : 전국여객운송조합연합회, 전국화물운송조합연합회 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: 온디맨드
+    guest_control: 가능
+    bd_status: 관리
+    expected_effects: ["연결율 향상", "소통 통합, 자산화"]
+    partners: []
+    needs_human_confirm: false
+
+  - id: bd.credit_rating
+    name: 신용평가
+    aliases: []
+    industry_scope: 금융
+    target_company: 신용평가사
+    br_role: "기업평가부서 / 개인평가부서"
+    guest_role: "기업고객 / 개인·기업고객"
+    work_desc: "평가요청 및 결과 확인 / 개인신용 관리 및 컨설팅"
+    br_guest_multirow: true
+    br_guest_multirow_note: "BM 정의 r12~r13 2행이 C12:C13 병합으로 묶인다."
+    market_size_note: "45억 ~ 80억 / (3억 기준)"
+    target_company_size_note: "신용평가사 / 15~20개사"
+    target_company_detail: "기업신용평가(4개) : 한별신용평가, 우람기업평가, 새길신용평가, 다솔신용평가 / 개인신용평가(5~6개) : 한별평가정보, 고래크레딧, 구름은행, 열매파이낸셜, 소나기퍼블리카 등 / 기업신용조회/TCB(6~8개) : 우람평가데이터, 한별디앤비, 미더블, 새길평가정보, 다솔기업데이터, 기술보증기금 등"
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: null
+    guest_control: 가능
+    bd_status: 후보
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "비용 절감(업무생산성)",
+        "컴플라이언스 준수",
+        "연결율 향상",
+        "소통 통합, 자산화",
+      ]
+    partners: []
+    needs_human_confirm: false
+
+  - id: bd.insurance_sales
+    name: 보험영업
+    aliases: ["보험영업 (상세 자료)"]
+    industry_scope: 금융
+    target_company: 보험사/GA
+    br_role: 설계사
+    guest_role: 고객
+    work_desc: 보험 세일즈
+    market_size_note: null
+    target_company_size_note: "보험사/GA"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: null,
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: null
+    guest_control: 가능
+    bd_status: 후보
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "컴플라이언스 준수",
+        "연결율 향상",
+        "소통 통합, 자산화",
+      ]
+    partners: []
+    needs_human_confirm: false
+    disambiguation:
+      quote: "보험설계지원과 보험영업 구분: 보험사가 GA 설계사를 지원 → 보험설계지원 / 설계사가 고객에게 판매 → 보험영업"
+      locator: "LeadFlow_BD분류_프롬프트.md#3-인접-bd"
+      note: "그래서 'GA'·'설계사' 토큰만으로는 두 BD를 구분할 수 없다. aliases.yaml 의 ambiguous_terms 참조."
+
+  - id: bd.b2b_distribution_sales
+    name: B2B유통/세일즈
+    aliases: []
+    industry_scope: 비금융
+    target_company: "제조사, 물류"
+    br_role: 영업/영업지원
+    guest_role: 유통대리점/고객
+    work_desc: 견적/발주 응대 및 업무 소통
+    market_size_note: null
+    target_company_size_note: null
+    target_company_detail: null
+    maturity: null
+    channel_type: null
+    guest_control: null
+    bd_status: null
+    expected_effects: []
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: >-
+      이 BD는 BM 정의 시트에만 있고 시장사이즈·진척도·기대효과 시트에는 행이 없다.
+      그래서 maturity·bd_status·channel_type·guest_control·market_size 가 전부 비어 있다.
+      구명칭 '제조'·'식자재유통(푸드서비스)'·'물류'가 이 BD의 구명칭인지 사람이 확정해야 한다.
+    merge_hypothesis:
+      candidates: [bd.manufacturing, bd.food_service_distribution, bd.logistics]
+      basis: "BM 정의 D15 타겟기업이 '제조사, 물류'이고, 시장사이즈의 구명칭 3개 타겟기업이 각각 '제조사'·'유통사'·'물류 중계사'다."
+      not_stated_anywhere: true
+      warning: "문서에 명시된 매핑표가 없다. 추정이므로 aliases 에 넣지 않았다. 병합하면 관리 BM 2개(제조·식자재유통)와 후보 BM 1개(물류)의 bd_status 가 충돌한다."
+
+  - id: bd.b2c_sales
+    name: B2C세일즈
+    aliases: []
+    industry_scope: 비금융
+    target_company: "(명품)브랜드, 온라인몰"
+    br_role: 영업/영업지원
+    guest_role: (VIP)고객
+    work_desc: 마케팅, 상품판매, 고객 관리
+    market_size_note: null
+    target_company_size_note: null
+    target_company_detail: null
+    maturity: null
+    channel_type: null
+    guest_control: null
+    bd_status: null
+    expected_effects: []
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: >-
+      BM 정의 시트에만 있고 다른 6개 시트 어디에도 대응 행이 없다. 구명칭 대응 항목을 찾지 못했다(미확인).
+      실물 딜은 존재한다 — 모다패션(주간계획 5.·6. 표, 활동일지 일일보고 5. '모다패션 / 제안 / 1.9억 / 0.25')·
+      다이소(Slack #all-영업활동공유)·인디고코리아·롯데면세점 등이 (명품)브랜드/온라인몰 축에 해당한다.
+
+  - id: bd.internal_communication
+    name: 내부소통
+    aliases: []
+    industry_scope: 비금융
+    target_company: "렌털, 제조사"
+    br_role: "본사, 부서"
+    guest_role: "지점, 타부서"
+    work_desc: 구독 서비스 활동 관리 및 업세일즈
+    market_size_note: null
+    target_company_size_note: null
+    target_company_detail: null
+    maturity: null
+    channel_type: null
+    guest_control: null
+    bd_status: null
+    expected_effects: []
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: "BM 정의 시트에만 있다. 구명칭 '렌털'과의 대응 여부를 사람이 확정해야 한다."
+    merge_hypothesis:
+      candidates: [bd.rental]
+      basis: "BM 정의 D17 타겟기업이 '렌털, 제조사'이고 시장사이즈 B15 '렌털' 타겟기업이 '가전(제조사)'다."
+      not_stated_anywhere: true
+    slack_absence: "Slack 4채널(2,349건) 전체에서 '내부소통' 문자열 0회."
+
+  - id: bd.tenant_management
+    name: 입점사관리
+    aliases: []
+    industry_scope: 비금융
+    target_company: "프랜차이즈사, 유통사"
+    br_role: "매장관리자, 영업"
+    guest_role: "점주, 영업소"
+    work_desc: 상시 업무, 이벤트 소통
+    market_size_note: null
+    target_company_size_note: null
+    target_company_detail: null
+    maturity: null
+    channel_type: null
+    guest_control: null
+    bd_status: null
+    expected_effects: []
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: "BM 정의 시트에만 있다. 구명칭 '프랜차이즈'와의 대응 여부를 사람이 확정해야 한다."
+    merge_hypothesis:
+      candidates: [bd.franchise]
+      basis: "BM 정의 D18 타겟기업이 '프랜차이즈사, 유통사'이고 시장사이즈 B16 '프랜차이즈' 타겟기업이 '프랜차이즈사'다."
+      not_stated_anywhere: true
+      warning: "'프랜차이즈'는 기대효과 시트에서 제외 BM 이다. 병합하면 신규 BD가 제외 상태를 물려받는다."
+    slack_absence: "Slack 4채널 전체에서 '입점사' 문자열 0회."
+
+  - id: bd.contact_center
+    name: 고객센터
+    aliases: ["CS"]
+    alias_basis:
+      - "BM 정의 C19 '고객센터' 산업 '공통' 타겟기업 '전 산업'"
+      - "멀티BM C3·C7·C9·C11 네 업권 전부에 'CS'가 공통 항목으로 등장 — 전 산업 공통이라는 성격이 일치"
+      - "LeadFlow §3 BD 정의 목록에도 '고객센터'가 있다"
+    industry_scope: 공통
+    target_company: 전 산업
+    br_role: 상담사
+    guest_role: 고객
+    work_desc: 문의 응대, VOC
+    market_size_note: null
+    target_company_size_note: null
+    target_company_detail: null
+    maturity: null
+    channel_type: null
+    guest_control: null
+    bd_status: null
+    expected_effects: []
+    partners: []
+    needs_human_confirm: false
+    note: >-
+      시장사이즈·진척도·기대효과 시트에 행이 없다(공통 BD라 개척 대상이 아닌 것으로 보이나 미확인).
+      Slack 4채널에서 '고객센터' 110회로 BD 중 최다 등장 축의 하나다.
+
+  # ---- 아래 6개는 시장사이즈·진척도·기대효과 시트에만 있는 구명칭 계열 ----
+
+  - id: bd.manufacturing
+    name: 제조
+    aliases: []
+    industry_scope: 비금융
+    target_company: 제조사
+    br_role: null
+    guest_role: null
+    work_desc: null
+    market_size_note: null
+    target_company_size_note: "제조사"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: 상시
+    guest_control: 불가
+    bd_status: 관리
+    expected_effects: ["비용 절감(업무생산성)", "소통 통합, 자산화"]
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: >-
+      LeadFlow 프롬프트는 '제조'를 BD가 아니라 타겟기업 유형이라고 명시하며 bd 값으로 쓰지 말라고 금지한다.
+      BD Overview 는 관리 BM 9개 중 하나로 다룬다. 두 정본이 충돌한다.
+      또 BM 정의 시트에 행이 없어 BR·Guest·업무가 비어 있다.
+    real_customer_evidence: "카파전선(pain 15건) — 거래처 카카오톡 ↔ 영업지원 PC·모바일앱 공식 채널 구축 사례"
+
+  - id: bd.food_service_distribution
+    name: 식자재유통 (푸드서비스)
+    aliases: ["식자재유통"]
+    alias_basis:
+      [
+        "전략매출 B2·Guest통제 B3 는 '식자재유통' 표기, 시장사이즈 B11·진척도 B11·기대효과 B12 는 '식자재유통 (푸드서비스)' 표기",
+      ]
+    industry_scope: 비금융
+    target_company: 유통사
+    br_role: null
+    guest_role: null
+    work_desc: null
+    market_size_note: null
+    target_company_size_note: "유통사"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: 상시
+    guest_control: 가능
+    bd_status: 관리
+    expected_effects: ["비용 절감(업무생산성)", "소통 통합, 자산화"]
+    partners: ["한울텔레콤"]
+    needs_human_confirm: true
+    confirm_reason: "LeadFlow 금지 목록에 '식자재유통'이 있다(BD가 아니라 타겟기업 유형). BM 정의 시트에 행이 없다."
+
+  - id: bd.logistics
+    name: 물류
+    aliases: []
+    industry_scope: 비금융
+    target_company: 물류 중계사
+    br_role: null
+    guest_role: null
+    work_desc: null
+    market_size_note: null
+    target_company_size_note: "물류 중계사"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: null,
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: null
+    guest_control: 가능
+    bd_status: 후보
+    expected_effects:
+      ["매출 증대(세일즈)", "비용 절감(업무생산성)", "소통 통합, 자산화"]
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: "LeadFlow 금지 목록에 '물류'가 있다. BM 정의 시트에 행이 없다."
+
+  - id: bd.rental
+    name: 렌털
+    aliases: []
+    industry_scope: 비금융
+    target_company: 가전(제조사)
+    br_role: null
+    guest_role: null
+    work_desc: null
+    market_size_note: null
+    target_company_size_note: "가전(제조사)"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: null,
+        이관_여부: null,
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: null
+    guest_control: 가능
+    bd_status: 후보
+    expected_effects: ["연결율 향상", "소통 통합, 자산화"]
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: "LeadFlow 금지 목록에 '렌털'이 있다. BM 정의 시트에 행이 없다."
+    real_customer_evidence: >-
+      타하렌터카(pain 15건, 법인폰·카카오 상담톡 공식 영업 채널). 단 타하렌터카는 렌터카(서비스)이고
+      이 BD의 타겟기업은 '가전(제조사)'이라 같은 BD인지 미확인.
+
+  - id: bd.franchise
+    name: 프랜차이즈
+    aliases: []
+    industry_scope: 비금융
+    target_company: 프랜차이즈사
+    br_role: null
+    guest_role: null
+    work_desc: null
+    market_size_note: null
+    target_company_size_note: "프랜차이즈사"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: "✔",
+        세일즈킷_완성: "✔",
+        이관_여부: "제외",
+        시장배분_여부: null,
+        제품지원_여부: "✔",
+      }
+    channel_type: null
+    guest_control: null
+    bd_status: 제외
+    expected_effects: ["비용 절감(업무생산성)", "소통 통합, 자산화"]
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: "LeadFlow 금지 목록에 '프랜차이즈'가 있다. BM 정의 시트에 행이 없다."
+
+  - id: bd.platform
+    name: 플랫폼
+    aliases: []
+    industry_scope: 비금융
+    target_company: 광범위
+    br_role: null
+    guest_role: null
+    work_desc: null
+    market_size_note: null
+    target_company_size_note: "광범위"
+    target_company_detail: null
+    maturity:
+      {
+        제안가치_준비: null,
+        세일즈킷_완성: null,
+        이관_여부: "제외",
+        시장배분_여부: null,
+        제품지원_여부: null,
+      }
+    channel_type: null
+    guest_control: null
+    bd_status: 제외
+    expected_effects:
+      [
+        "매출 증대(세일즈)",
+        "비용 절감(업무생산성)",
+        "컴플라이언스 준수",
+        "연결율 향상",
+        "소통 통합, 자산화",
+      ]
+    partners: []
+    needs_human_confirm: true
+    confirm_reason: >-
+      LeadFlow 금지 목록에 '플랫폼'이 있다. BM 정의 시트에 행이 없다.
+      기대효과 제외 BM 블록(P5)에서는 5개 지표 전부 ✔인데 진척도는 이관 '제외'만 있고 나머지가 전부 공백이다.
+      "기대효과는 최대인데 제외"라는 조합의 이유가 문서에 없다.
+
+# --------------------------------------------------------------------------
+# TARGETS 관계 입력 (BusinessDomain → Industry). 멀티BM 시트 B2~C11 원문.
+# --------------------------------------------------------------------------
+targets_edges:
+  - industry: 보험사
+    scope: 공통
+    bd_names_raw: [보험설계지원, TM, CS, "채권추심(구상권)", "퇴직연금(일부)"]
+    bd_ids:
+      [
+        bd.insurance_planning_support,
+        bd.tm,
+        bd.contact_center,
+        bd.debt_collection,
+        bd.retirement_pension,
+      ]
+    locator: "BD Overview.xlsx!멀티BM!C3"
+  - industry: 손해보험사
+    scope: 손보
+    bd_names_raw: [보상, "리드연결 (카카오페이)"]
+    bd_ids: [bd.accident_compensation]
+    unmapped: ["리드연결 (카카오페이)"]
+    locator: "BD Overview.xlsx!멀티BM!C4"
+  - industry: 생명보험사
+    scope: 생보
+    bd_names_raw: ["리드연결 (네이버페이)"]
+    bd_ids: []
+    unmapped: ["리드연결 (네이버페이)"]
+    locator: "BD Overview.xlsx!멀티BM!C5"
+  - industry: 증권사
+    bd_names_raw: [WM, "퇴직연금(일부)", CS]
+    bd_ids: [bd.wealth_management, bd.retirement_pension, bd.contact_center]
+    locator: "BD Overview.xlsx!멀티BM!C7"
+  - industry: 카드사/캐피탈사
+    bd_names_raw: ["자동차금융(일부)", 채권추심, TM, CS]
+    bd_ids: [bd.auto_finance, bd.debt_collection, bd.tm, bd.contact_center]
+    locator: "BD Overview.xlsx!멀티BM!C9"
+    note: "카드사와 캐피탈사가 한 셀에 묶여 있다. Industry 노드로는 2개로 분해해야 한다(활동일지 업권 enum 에 '카드사'·'캐피탈사'가 별도로 존재)."
+  - industry: 은행
+    bd_names_raw: ["자동차금융(일부)", "퇴직연금(일부)", WM, 채권추심, CS]
+    bd_ids:
+      [
+        bd.auto_finance,
+        bd.retirement_pension,
+        bd.wealth_management,
+        bd.debt_collection,
+        bd.contact_center,
+      ]
+    locator: "BD Overview.xlsx!멀티BM!C11"
+
+unmapped_bd_like_names:
+  - name: "리드연결 (카카오페이)"
+    where: "BD Overview.xlsx!멀티BM!C4"
+    reason: "멀티BM 시트에만 등장한다. BM 정의·시장사이즈·진척도·기대효과 어디에도 이 이름의 BD가 없다."
+    needs_human_confirm: true
+  - name: "리드연결 (네이버페이)"
+    where: "BD Overview.xlsx!멀티BM!C5"
+    reason: "위와 같음."
+    needs_human_confirm: true
+  - name: "기타"
+    where: "LeadFlow_BD분류_프롬프트.md#3 (15개 목록의 마지막 항목)"
+    reason: "판정 엔진의 폴백 값이지 사업 도메인이 아니다. BusinessDomain 노드로 만들지 않는다."
+    needs_human_confirm: false
+
+# --------------------------------------------------------------------------
+# 활동일지 `업무 도메인`(E열) → BD 매핑. §3 IN_DOMAIN 의 deterministic 입력.
+# 실측: 8종 / 총 117건. 이 중 BD와 직접 대응되는 것은 3종뿐이다.
+# --------------------------------------------------------------------------
+activity_log_domain_map:
+  source: "영업본부_방문 및 접촉 활동 일지.xlsx / 사람별 시트 4장(홍길동·김철수·이영희·박민수, 전부 hidden) E열"
+  split_rules: ["&"]
+  entries:
+    - raw: 보험설계
+      count: 21
+      bd_ids: [bd.insurance_planning_support]
+      confidence: high
+      basis: "BD명 '보험설계지원'의 접미사 '지원'만 누락. 해당 행들의 업권(D열)이 전부 보험사."
+      needs_human_confirm: false
+    - raw: 자동차금융
+      count: 13
+      bd_ids: [bd.auto_finance]
+      confidence: high
+      basis: "문자열 완전 일치."
+      needs_human_confirm: false
+    - raw: 상담
+      count: 74
+      bd_ids: [bd.contact_center]
+      confidence: low
+      basis: "BD '고객센터'(공통, 타겟 전 산업, 업무 '문의 응대, VOC')와 의미가 가장 가깝다."
+      needs_human_confirm: true
+      confirm_reason: >-
+        압도적 최다(74/117 = 63%)라 오매핑 시 IN_DOMAIN 통계 전체가 왜곡된다.
+        '상담'이 BD 고객센터를 뜻하는지, 아니면 레거시 상담 사업(Slack 에 '오로라원' 110회·'상담톡' 438회 병존)을 뜻하는지
+        문서에 정의가 없다. 사람이 확정하기 전에는 IN_DOMAIN 엣지를 만들지 않는다.
+    - raw: 협업
+      count: 3
+      bd_ids: []
+      status: unmapped
+      basis: "제품 대화 유형(GroupTalk)이지 사업 도메인이 아니다. 기능맵 H열 'GroupTalk' 컬럼과 같은 축."
+      needs_human_confirm: false
+    - raw: 상담&협업
+      count: 3
+      bd_ids: []
+      status: composite
+      split_into: [상담, 협업]
+      basis: "'&' 결합 복합값. 분해 후 각 값의 규칙을 따른다."
+      needs_human_confirm: true
+      confirm_reason: "'상담' 매핑이 미확정이라 이 값도 함께 보류된다."
+    - raw: AI챗봇
+      count: 1
+      bd_ids: []
+      status: unmapped
+      basis: "제품 축(시나리오봇·AI Assistant). BD가 아니다."
+      needs_human_confirm: false
+    - raw: FAQ
+      count: 1
+      bd_ids: []
+      status: unmapped
+      basis: "제품 축(기능맵 화면 'FAQ' 41행). BD가 아니다."
+      needs_human_confirm: false
+    - raw: 법인폰
+      count: 1
+      bd_ids: []
+      status: unmapped
+      needs_human_confirm: true
+      confirm_reason: >-
+        타하렌터카 pain No.81 '법인폰을 통해서만 영업하도록 하는 정책 전환에 맞는 공식 채널 필요'와 연결될 수 있으나,
+        그것이 BD '내부소통'인지 'B2C세일즈'인지 '렌털'인지 판단할 근거가 없다(미확인).
+
+# --------------------------------------------------------------------------
+# 주간계획 `업무도메인`(D열) → BD 매핑. 활동일지와 어휘 체계가 완전히 다르다.
+# 파일마다 별도 사전이 필요하다는 것이 실측 결론이다.
+# --------------------------------------------------------------------------
+weekly_plan_domain_map:
+  source: "영업본부_주간활동계획.xlsx / '5. 사업실행협의 이상 고객사' 표 D열"
+  entries:
+    - {
+        raw: "멀티 BD",
+        count: 10,
+        bd_ids: [],
+        status: meta,
+        basis: "여러 BD 동시 진행을 뜻하는 메타 값. 특정 BD가 아니다.",
+        needs_human_confirm: false,
+      }
+    - {
+        raw: "영업점 채팅상담(파일럿)",
+        count: 8,
+        bd_ids: [],
+        status: unmapped,
+        needs_human_confirm: true,
+        confirm_reason: "가나은행 건. 은행 영업점 채팅상담이 BD 고객센터인지 자산관리인지 근거 없음.",
+      }
+    - {
+        raw: "고객관리",
+        count: 8,
+        bd_ids: [],
+        status: unmapped,
+        needs_human_confirm: true,
+        confirm_reason: "제품 Add-on '고객 관리'와 같은 이름이라 BD인지 기능인지 구분 불가.",
+      }
+    - {
+        raw: "CS",
+        count: 8,
+        bd_ids: [bd.contact_center],
+        confidence: high,
+        basis: "멀티BM 시트가 CS를 전 업권 공통 BD로 표기하고 BM 정의의 '고객센터'와 대응.",
+        needs_human_confirm: false,
+      }
+    - {
+        raw: "고객자산가 전용앱 채팅상담",
+        count: 7,
+        bd_ids: [],
+        status: unmapped,
+        needs_human_confirm: true,
+        confirm_reason: "들찬증권 건으로 보이며 BD 자산관리(WM)일 가능성이 있으나 문서에 근거 없음.",
+      }
+    - {
+        raw: "GA",
+        count: 2,
+        bd_ids: [],
+        status: ambiguous,
+        needs_human_confirm: true,
+        confirm_reason: "LeadFlow 구분 규칙상 보험설계지원과 보험영업 둘 다 가능. aliases.yaml ambiguous_terms 참조.",
+      }

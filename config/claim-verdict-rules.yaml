@@ -1,0 +1,666 @@
+# Observation / VERIFIED / CANDIDATE 판정 규칙표 (REVISED §4 ⑥ 의 기계 적용판)
+#
+# 판정 3단 원문
+#   (1) Source 의 직접 기록 → Observation (확정: "이 자료에 이렇게 적혀 있다")
+#   (2) 해당 Source 가 그 사실의 정본인 명시적 사실 → VERIFIED Claim 가능
+#   (3) 시장성·고객 일반화·전략적 판단·해석 → CANDIDATE Claim (구조화 자료에 적혀 있어도 자동 VERIFIED 금지)
+#
+# 핵심 오해 방지
+#   "구조화되어 있다 = 원문에 명시되어 있다" 이지 "일반화된 Claim 이 검증되었다" 가 아니다.
+#
+# 적용 순서 (선행 규칙이 이긴다)
+#   1) overrides (LLM 추출·criticality·conflict)
+#   2) rules (source_type × claim_kind)
+#   3) defaults
+
+version: "1.0.0"
+
+defaults:
+  observation_confirmed: true # (1) Source 의 직접 기록은 언제나 Observation 으로 확정한다
+  verified_allowed: false # 규칙표에 없는 조합은 절대 VERIFIED 로 올리지 않는다
+  default_status: CANDIDATE
+  lane: [default]
+
+claim_kinds:
+  product_spec: 제품이 무엇을 하는가 / 어떤 값이 기본인가 / 언제부터 되는가
+  bd_registry_fact: BusinessDomain 의 레지스트리 속성(산업·타겟기업·BR/Guest·성숙도·채널·상태·파트너)
+  deal_fact: 특정 딜의 단계·금액·확률·이슈·다음 액션, 접촉 사실
+  market_assessment: 시장 규모·성장성·유망성 평가
+  customer_generalization: '"고객들은 대체로 이런 요구가 있다" 류의 일반화'
+  strategic_judgment: 무엇을 할지·말지에 대한 사내 판단과 방향
+  interpretation: 원문에 없는 해석·추론·요약 재서술
+
+# --------------------------------------------------------------------------
+# 최우선 override
+# --------------------------------------------------------------------------
+overrides:
+  - id: OV-LLM
+    precedence: 1
+    when: { extractor: llm }
+    observation_confirmed: true
+    verified_allowed: false
+    force_status: CANDIDATE
+    reason: "LLM 추출물은 항상 CANDIDATE(REVISED §4 ⑥). 어떤 LLM 도 status 를 직접 쓰지 못한다."
+    blocking_test: "LLM 이 status=VERIFIED 를 반환하면 파이프라인이 거부해야 한다(A4 차단 케이스)."
+
+  - id: OV-CRITICAL
+    precedence: 2
+    when: { criticality_fired: true }
+    observation_confirmed: true
+    force_lane_add: [critical]
+    force_status_when_verified_allowed: CRITICAL
+    force_status_when_not_verified_allowed: UNVERIFIED
+    reason: >-
+      criticality 규칙이 발화하면 빈도·근거 수와 무관하게 critical lane 에 넣는다.
+      목적은 승격이 아니라 "검색 단계에서 사라지지 않는 것"이다. 승격을 기다리면 이미 누락이다.
+
+  - id: OV-CONFLICT
+    precedence: 3
+    when: { contradiction_detected: true }
+    force_lane_add: [conflict]
+    force_status: null
+    scope_1a: "lane 부여(측정)까지만. status 를 DISPUTED 로 바꾸는 전이와 병렬 제시 UX 는 1B(B3)."
+    reason: "동일 subject-key 에 양립 불가한 값이 있으면 단일 합성을 금지하기 위한 표시를 먼저 남긴다."
+
+  - id: OV-VISION-UNREADABLE
+    precedence: 4
+    when: { transcription_flag_in: [판독불가, 판독주의] }
+    observation_confirmed: false
+    verified_allowed: false
+    force_status: CANDIDATE
+    reason: >-
+      vision 판독본에 실제로 [판독불가]·[판독주의] 표기가 다수 있다.
+      그 구간은 숫자·고유명사 추출 대상에서 제외하고 Observation 도 확정하지 않는다.
+
+  - id: OV-COPY-RESIDUE
+    precedence: 5
+    when: { entity_name_conflicts_with_document_subject: true }
+    observation_confirmed: false
+    verified_allowed: false
+    force_status: CANDIDATE
+    require_flag: review_required
+    reason: >-
+      복사 잔존 텍스트가 실재한다. [사아캐피탈] 추진안 TABLE 2 ① 셀 값이 '기업 비즈니스 채널(미르손해보험 GA 알림톡) 기반 1:1 대화'이고
+      열 제목도 '보험설계지원 솔루션(改)'이다. 그대로 파싱하면 '사아캐피탈 ↔ 미르손해보험'이라는 없는 관계가 생긴다.
+    check: "표 셀 단위 교차검증 — 문서 주체 기업명과 셀 안 기업명이 다르면 플래그."
+
+# --------------------------------------------------------------------------
+# source_type × claim_kind 규칙표
+# --------------------------------------------------------------------------
+rules:
+  # ---- release_spec (기능맵 v2.1) ----
+  - {
+      source_type: release_spec,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      reason: "기능맵 v2.1 은 기능의 존재·이름·버전별 포함 여부의 정본이다. 한 행에 1.0.0/1.1.0/2.0.0/2.1.0 네 컬럼이 다 들어 있다.",
+      example: "r15 '비회원 상담 연속성 유지' → 2.0.0부터 (GQ-D8 정답)",
+    }
+  - {
+      source_type: release_spec,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+      reason: "기능맵은 시장을 판단하는 자료가 아니다.",
+    }
+  - {
+      source_type: release_spec,
+      claim_kind: interpretation,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "F열 '설명' 문장을 사용자 관점 동작으로 재서술하면 해석이다.",
+    }
+
+  # ---- bd_registry (BD Overview.xlsx) ----
+  - {
+      source_type: bd_registry,
+      claim_kind: bd_registry_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_intent,
+      reason: "BD 의 산업 구분·타겟기업·BR/Guest·성숙도·채널 유형·Guest 통제·bd_status·파트너는 이 파일이 정본이다.",
+      example: "BM 정의 r3 → Claim '보험설계지원 BD 의 BR 은 설계매니저이고 Guest 는 외부 모집사(GA) 설계사다'",
+    }
+  - source_type: bd_registry
+    claim_kind: market_assessment
+    observation_confirmed: true
+    verified_allowed: false
+    default_status: CANDIDATE
+    claim_domain: market_fact
+    reason: "REVISED §4 판정 예시 그대로. 지시문 예시와 동일한 규칙이다."
+    example_observation: "BD Overview 기대효과 시트가 B2B유통 계열(제조·식자재유통)을 관리 BM 으로 분류하고 비용 절감·소통 통합을 기대효과로 표기했다. → Observation 확정"
+    example_claim: "B2B유통은 실제로 유망 시장이다. → Claim 은 CANDIDATE. 구조화 자료에 적혀 있어도 자동 VERIFIED 금지."
+    counter_example_locator: "BD Overview.xlsx!시장사이즈!D3~D12 (전부 '~억 (N억 기준)' 형태의 사내 추정 문자열)"
+  - {
+      source_type: bd_registry,
+      claim_kind: strategic_judgment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+      reason: "'프랜차이즈·플랫폼은 제외' 같은 판단은 확정 사실이 아니라 그 시점의 사내 결정이다. 진척도 각주가 '개척 활동 진행 후 판단 필요'라고 스스로 밝힌다.",
+    }
+
+  # ---- bd_registry_aux (LeadFlow 프롬프트) ----
+  - {
+      source_type: bd_registry_aux,
+      claim_kind: bd_registry_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_intent,
+      reason: "BD 정의문과 인접 BD 구분 규칙의 보조 정본. 다만 BD 개수(15)가 BD Overview 와 어긋나므로 개수 관련 Claim 은 lane=conflict.",
+    }
+  - {
+      source_type: bd_registry_aux,
+      claim_kind: interpretation,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+    }
+
+  # ---- pain_registry (고객사 Pain Point xlsx) ----
+  - {
+      source_type: pain_registry,
+      claim_kind: customer_generalization,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+      reason: "고객사별 Pain 을 '고객들은 대체로 이렇다'로 일반화하는 순간 CANDIDATE. 원문은 4개 고객사 사례일 뿐이다.",
+    }
+  - {
+      source_type: pain_registry,
+      claim_kind: deal_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: customer_need,
+      reason: "'이 고객사가 이 Pain 을 제기했고 이렇게 대응했다'는 구축 기록의 정본이다.",
+      example: "No.16 마바손해보험 → Claim '마바손해보험은 본사가 외부 설계사 소통 경로를 통제·관리하지 못하는 문제를 제기했다'",
+    }
+  - {
+      source_type: pain_registry,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "D열 '기능' 은 구축 맥락의 표기이지 기능맵의 정본 이름이 아니다. 제공구분 enum 도 시트 간 정의가 어긋난다(목록 5종 vs 체크포인트 '2종으로만 구분해 합의').",
+    }
+  - {
+      source_type: pain_registry,
+      claim_kind: interpretation,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+      reason: "E열의 '• 원천 요구:' 뒷부분은 우리 해석이다. 원문 Pain 과 분리해서 다뤄야 한다.",
+    }
+
+  # ---- sales_activity_log (활동일지) ----
+  - {
+      source_type: sales_activity_log,
+      claim_kind: deal_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: deal_fact,
+      reason: "작성 룰이 있는 1차 기록이다(시트 r2~r6에 '작성 룰' 1~4 명시). 단계·금액·확률·이슈의 정본.",
+      example: "일일보고 5. → Claim '가나손해보험 딜은 제안 단계이고 예상매출 2.85억, 성공확률 0.8, 우선협상대상자 선정의 핵심 걸림돌은 금액 점수 격차다' (GQ-D1 근거)",
+      required_fields: [observed_at, amount_raw],
+    }
+  - {
+      source_type: sales_activity_log,
+      claim_kind: customer_generalization,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+      reason: "고객 요구에 대해서는 영업대표의 전언이다. deal_fact 와 같은 권위를 주면 안 되므로 domain 을 분리한다.",
+    }
+  - {
+      source_type: sales_activity_log,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "'실시간 번역이 지금 되나' 질문에 '고도화 제안중'이라는 영업 문장이 근거로 쓰이면 안 된다(v1.0 §F-1 실패사례 3).",
+    }
+  - {
+      source_type: sales_activity_log,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+    }
+
+  # ---- sales_weekly_plan (주간활동계획) ----
+  - {
+      source_type: sales_weekly_plan,
+      claim_kind: deal_fact,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: deal_fact,
+      reason: "계획이지 실적이 아니다. 같은 고객사가 주차마다 재등장하므로 값 변화 시점만 Observation 으로 남긴다.",
+      caution: "헤더 컬럼 배치가 블록마다 7종으로 흔들려 값이 섞여 읽힐 수 있다. 헤더 재판독 전 값은 신뢰하지 않는다.",
+    }
+  - {
+      source_type: sales_weekly_plan,
+      claim_kind: strategic_judgment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+      reason: "'1. 주간활동 특이사항, 의사결정사항, 경영진 보고필요사항' 섹션은 criticality 발화 지점이기도 하다.",
+    }
+
+  # ---- proposal (제안서) ----
+  - source_type: proposal
+    claim_kind: product_spec
+    observation_confirmed: true
+    verified_allowed: false
+    default_status: CANDIDATE
+    claim_domain: product_behavior
+    reason: >-
+      v1.0 §F-1 실패사례 1 그대로. '고객사 제출 공식 문서 = 높음'으로 잡으면 1.x 를 쓰는 고객의 질문에
+      제안서 서술로 '지원'이라 답하게 된다. release_spec 을 절대 이기지 못하게 한다.
+    forbidden_inversion: "product_behavior 에서 proposal 이 release_spec 보다 위로 올라가면 안 된다."
+  - {
+      source_type: proposal,
+      claim_kind: deal_fact,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: deal_fact,
+      reason: "타사 도입 현황 표는 제안 시점의 주장이다. 관측 시점 표기가 없는 경우가 실재한다(다라카드 '월 3,500건 이상'에 시점 없음).",
+    }
+  - {
+      source_type: proposal,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+      reason: "인용된 외부 수치가 문서 간 10배 어긋난다(미국 금융권 벌금 180M$ vs 18억$). 원문(web_official)을 확보하기 전에는 시장 사실로 못 쓴다.",
+    }
+  - {
+      source_type: proposal,
+      claim_kind: customer_generalization,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+      reason: "우리가 주장한 pain 이지 고객이 말한 pain 이 아니다.",
+    }
+
+  # ---- product_brochure (제품소개서) ----
+  - {
+      source_type: product_brochure,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "마케팅 서술이며 도입 버전이 없다. 같은 문서 안에서 값이 어긋나는 사례도 있다(p25 vs p57 계정 잠금 조건·비밀번호 최소 길이).",
+      cross_check_hint: "p32 '최대 500건까지 동시 대화 가능'은 상담센터 매뉴얼 SLIDE 7 과 일치한다(교차검증 성공 사례). 이런 경우 독립 근거 2건으로 evidence_strength 를 올린다.",
+    }
+  - {
+      source_type: product_brochure,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+    }
+
+  # ---- bd_openbook ----
+  - {
+      source_type: bd_openbook,
+      claim_kind: bd_registry_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_intent,
+      reason: "BM 의 구조·역할 용어·적합 판단 기준은 이 자료가 정본이다.",
+      example: "GA Open Book p1 → Claim '설계매니저는 원수사 소속이지만 GA 대리점에 파견된 위촉계약직이다'",
+    }
+  - {
+      source_type: bd_openbook,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+      reason: "연령대별 톡상담 인입 비중 예측치 같은 값은 사내 추정이다.",
+    }
+  - {
+      source_type: bd_openbook,
+      claim_kind: customer_generalization,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+    }
+  - source_type: bd_openbook
+    claim_kind: strategic_judgment
+    observation_confirmed: true
+    verified_allowed: true
+    default_status: VERIFIED
+    claim_domain: product_intent
+    reason: >-
+      '핵심 목적이 아닌 것'의 명시는 그 자체가 사내 방향의 정본이다(자동차금융 Open Book p8: 고객 마케팅 ✗, 상품 비교 ✗, AG 평가 ✗).
+      Gap 판정에서 '의도적 비범위'로 쓰인다.
+
+  # ---- internal_memo (하늘IT) ----
+  - {
+      source_type: internal_memo,
+      claim_kind: strategic_judgment,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_intent,
+      reason: "그 협업 건의 현재 진행 상태와 미해결 안건은 이 문서가 정본이다.",
+      example: "Claim '구독 사업을 추진하려면 멀티테넌트 구조 개발이 필요하고 그 범위는 유저 라이선스 구조를 포함해 작지 않다' (GQ-D6 정답)",
+      criticality_hint: "단, criticality-rules 의 CR-RARE-TECH 가 발화하므로 실제 부여 status 는 CRITICAL 이 된다.",
+    }
+  - {
+      source_type: internal_memo,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      reason: "'개발 필요'라는 미보유 진술은 그 문서가 정본인 사실이다. Gap CONFIRMED 의 explicit_absence_evidence 로 쓰인다.",
+      scope: "미보유 진술에 한한다. 보유 주장은 release_spec/code 가 정본이다.",
+    }
+  - {
+      source_type: internal_memo,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+    }
+
+  # ---- internal_analysis (SI 비교) ----
+  - {
+      source_type: internal_analysis,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+      require_label: 추정,
+      reason: "문서 스스로 가정을 밝힌 내부 분석이다. 'SI+AI 약 4.5배'가 검증된 시장 사실처럼 인용되면 안 된다(v1.0 §F-1 실패사례 2).",
+    }
+  - {
+      source_type: internal_analysis,
+      claim_kind: deal_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: deal_fact,
+      reason: "'마바손해보험 프로젝트 7개월·12.4 M/M·요구사항 55건 + 추가/개선 약 255건'은 실적 기록이다.",
+      scope: "실적 수치에 한한다. 비교 배수(4.5배·8배)는 market_assessment 다.",
+    }
+
+  # ---- internal_deck ----
+  - {
+      source_type: internal_deck,
+      claim_kind: customer_generalization,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+      reason: "영업 현장에서 받는 반문 목록은 관찰이지만 '고객들은 대체로'로 넘어가면 일반화다.",
+    }
+  - {
+      source_type: internal_deck,
+      claim_kind: strategic_judgment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+    }
+  - {
+      source_type: internal_deck,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+      reason: "보험사별 제안가 표(매출·설계매니저 수·인건비절감·손익증가)는 사내 산정 기준이지 시장 사실이 아니다.",
+    }
+  - {
+      source_type: internal_deck,
+      claim_kind: bd_registry_fact,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+      reason: "'14개 업무 도메인' 표기가 BD Overview·LeadFlow 와 어긋난다. lane=conflict 대상.",
+    }
+
+  # ---- customer_internal_report (고객사 작성) ----
+  - {
+      source_type: customer_internal_report,
+      claim_kind: deal_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: customer_need,
+      reason: "고객사 자신의 운영 프로세스는 고객사 문서가 정본이다(새벽 배치 익일 반영, GA지원팀 역할 등).",
+    }
+  - {
+      source_type: customer_internal_report,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "고객 환경의 구성일 뿐 제품 전체 spec 이 아니다.",
+    }
+
+  # ---- slack_thread ----
+  - source_type: slack_thread
+    claim_kind: deal_fact
+    observation_confirmed: true
+    verified_allowed: false
+    default_status: CANDIDATE
+    claim_domain: deal_fact
+    reason: >-
+      발화 자체는 Observation 으로 확정하지만('2026-02-06 한울SI 와 누리손해보험 재견적 협의를 했다고 공유됐다'),
+      딜 상태 Claim 은 활동일지가 정본이므로 CANDIDATE 로 둔다. 1A 는 보수적으로 간다.
+    note: "#all-영업활동공유는 599건 중 545건이 '*[제목]*' 서식이라 deterministic 분해가 가능하다."
+  - {
+      source_type: slack_thread,
+      claim_kind: customer_generalization,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+    }
+  - {
+      source_type: slack_thread,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+    }
+  - {
+      source_type: slack_thread,
+      claim_kind: market_assessment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: market_fact,
+      reason: "marketingtft 봇이 보강한 법인명·설립일·사원수·매출액·리드등급은 실제로 틀린 사례가 있다. 전부 CANDIDATE.",
+    }
+  - {
+      source_type: slack_thread,
+      claim_kind: interpretation,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: customer_need,
+    }
+
+  # ---- repo_doc ----
+  - {
+      source_type: repo_doc,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      scope: 모듈_구조,
+      reason: "'talkcore 에 talkcoremanager 도메인이 있다' 같은 구조 사실은 VERIFIED 후보다.",
+      caution: "'이 기능이 이렇게 동작한다'는 서술은 CANDIDATE 로 둬야 한다. 아래 규칙이 그것을 받는다.",
+    }
+  - {
+      source_type: repo_doc,
+      claim_kind: interpretation,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "코드에 대한 2차 서술이며 코드가 정본이다. 문서 안 버전 표기도 실제 HEAD 와 어긋난다.",
+    }
+
+  # ---- product_doc (portal adoc) ----
+  - {
+      source_type: product_doc,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      reason: "설정 키 이름과 기본값·라이선스 게이팅·외부 의존은 구축 가이드가 정본이다.",
+      example: "app.member.sync.transfer.enabled 기본값 true / 외국어 대화 지원은 라이선스 발급 필요 + 구글 Cloud Translation Basic v2",
+    }
+
+  # ---- glossary ----
+  - {
+      source_type: glossary,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      scope: 용어_매핑,
+      reason: "한글↔영문 용어 매핑과 동음이의 경고의 정본. alias 사전의 근거로 직접 쓰인다.",
+    }
+
+  # ---- code / test ----
+  - {
+      source_type: code,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      reason: "구현 사실의 정본.",
+    }
+  - {
+      source_type: code,
+      claim_kind: strategic_judgment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+      reason: "구현됐다 ≠ 의도였다.",
+    }
+  - {
+      source_type: test,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: product_behavior,
+      reason: "검증된 동작. product_behavior 축에서 code 보다 위다.",
+    }
+
+  # ---- compliance_checklist / architecture_spec / ai_eval_dataset (1A 미투입, 규칙만 준비) ----
+  - {
+      source_type: compliance_checklist,
+      claim_kind: bd_registry_fact,
+      observation_confirmed: true,
+      verified_allowed: true,
+      default_status: VERIFIED,
+      claim_domain: market_fact,
+      scope: 법률_근거_인용,
+      reason: "법조문 인용은 원문 그대로다. 단 '제외' 판정 사유는 사내 판단이라 아래 규칙이 받는다.",
+    }
+  - {
+      source_type: compliance_checklist,
+      claim_kind: strategic_judgment,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_intent,
+    }
+  - {
+      source_type: architecture_spec,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "'무엇을 보장하기로 했는가'이지 '지금 그렇게 동작한다'가 아니다. 본문이 계속 Ver.1.0.0 을 가리키는 문서·제품 버전 혼선도 있다.",
+    }
+  - {
+      source_type: ai_eval_dataset,
+      claim_kind: product_spec,
+      observation_confirmed: true,
+      verified_allowed: false,
+      default_status: CANDIDATE,
+      claim_domain: product_behavior,
+      reason: "합성 데이터임을 문서 스스로 밝힌다(가람은행 시트 r1 이 생성 프롬프트).",
+    }
+
+# --------------------------------------------------------------------------
+# A4 차단 케이스 (반드시 테스트로 고정한다)
+# --------------------------------------------------------------------------
+blocking_tests:
+  - id: BT-1
+    name: 일반화 Claim 자동 VERIFIED 차단
+    input: "BD Overview 시장사이즈·기대효과의 B2B유통 계열 평가"
+    expect_observation: CONFIRMED
+    expect_claim_status: CANDIDATE
+    rule: "bd_registry × market_assessment"
+    fail_if: "Claim 이 VERIFIED 로 적재되면 실패."
+  - id: BT-2
+    name: 제안서가 기능맵을 이기지 못함
+    input: "제안서의 '지원' 서술 vs 기능맵의 버전 컬럼"
+    expect: "product_behavior 질문에서 release_spec Evidence 가 proposal Evidence 보다 위에 인용된다."
+    fail_if: "1.x 사용 고객 질문에 제안서 근거로 '지원'이라 답하면 실패."
+  - id: BT-3
+    name: LLM 이 status 를 쓰지 못함
+    input: "LLM 추출 결과에 status=VERIFIED 포함"
+    expect: "파이프라인이 거부."
+  - id: BT-4
+    name: 근거 없는 비즈니스 엣지 생성 불가
+    input: "claim_ids 가 빈 비즈니스 엣지"
+    expect: "스키마 검증에서 거부(ontology.schema.json edgeBusiness.claim_ids minItems 1)."
+  - id: BT-5
+    name: 오병합 차단
+    input: "마바손해보험 / 마바캐피탈"
+    expect: "서로 다른 Account 노드 2개."
+  - id: BT-6
+    name: 보존 검사
+    input: "Evidence 에 없는 숫자가 Claim statement 에 등장"
+    expect: "T2 게이트에서 차단(숫자·고유명사 보존 검사)."

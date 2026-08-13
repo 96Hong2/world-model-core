@@ -65,6 +65,10 @@ def _matches(rel: str, pattern: str) -> bool:
 def expand_bundle(bundle: dict[str, Any], taken_paths: set[str]) -> list[dict[str, Any]]:
     root = Path(bundle["root"])
     if not root.exists():
+        # optional 번들은 자료를 아직 안 받은 환경(막 클론한 레포 등)에서 조용히 비운다.
+        # 실데이터 등록 시나리오의 번들은 optional 없이 그대로 크게 실패해야 한다.
+        if bundle.get("optional"):
+            return []
         raise FileNotFoundError(f"번들 root 가 없다: {bundle.get('id')} → {root}")
 
     entries: list[dict[str, Any]] = []

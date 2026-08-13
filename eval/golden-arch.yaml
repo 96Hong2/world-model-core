@@ -1,0 +1,187 @@
+# Golden 추가 5문항 — 아키텍처 개선 대상·테스트 검증 축 (2026-08-10)
+#
+# 왜 별도 파일인가
+#   eval/golden.yaml 은 Phase 1A 정본 20문항이고 tests/test_eval_harness.py 가
+#   `15 <= len(questions) <= 20` 으로 그 범위를 못박고 있다. 그 상한은 1A 범위를 정한 것이라
+#   문항을 늘리려고 풀지 않는다. 대신 runner 가 이미 지원하는 --golden 으로 이 파일을 따로 채점한다.
+#
+#     .venv/bin/python -m eval.runner --golden eval/golden-arch.yaml \
+#         --answer-endpoint http://localhost:8099/ask
+#
+# 문항 접두 (신설)
+#   GQ-T : 테스트·검증 커버리지. 제품이 시험되고 있는지를 묻는다
+#   GQ-Q : 정량화 가능성. "얼마인가"에 근거 없이 숫자를 만들지 않는지를 본다
+#   기존 9종(D·P·A·B·M·S·G·K·C)에 맞는 것이 없어 새로 만들었다. 근거는 이 주석뿐이므로
+#   Lead 가 다른 접두를 원하면 바꾼다.
+#
+# 기대값의 근거
+#   전부 **자료 원문**이다. 시스템 출력에서 복사한 값은 한 건도 없다.
+#   GQ-T 는 2026-08-10 에 코드를 세어 만든 측정 문서가 근거이고,
+#   GQ-Q 는 보고서 v9 원문과 그래프 실측 문서가 근거다.
+#
+# ⚠️ 측정 문서는 시점 자료다
+#   docs/measured/*.md 는 2026-08-10 develop 기준이다. 저장소가 바뀌면 수치가 달라지므로
+#   이 문항들이 실패하면 먼저 '측정을 다시 해야 하는가'를 보고, 그다음에 답변을 본다.
+#   기대값을 시스템 출력에 맞춰 고치지 않는다.
+
+version: "1.0.0"
+question_count: 5
+
+paths:
+  wiki: data/sources/wiki
+  text: ./data/raw_probe/text
+  slack: ./data/sources/slack
+  measured: ./docs/measured
+
+questions:
+  # ======================================================================
+  # 테스트·검증 커버리지 (GQ-T1 ~ GQ-T3)
+  # ======================================================================
+  - id: GQ-T1
+    type: product_fact
+    question: 오류나 장애 시 영향도가 큰데, 통합 테스트가 부족하게 이뤄지고 있는 부분들이 있을까?
+    expected_route: Q-E
+    expected_evidence_min: 2
+    must_include:
+      - fact: "16"
+        source_quote: "겉보기 테스트는 11,812개인데 스프링 컨텍스트를 띄우고 실제로 도는 통합 테스트는"
+        source_file: "{measured}/통합테스트-실태-2026-08-10.md"
+        locator: "§한 줄 결론"
+        verify: { kind: text, path: "{measured}/통합테스트-실태-2026-08-10.md" }
+      - fact: "3"
+        source_quote: "CI 에서 실제로 도는 것은 3개"
+        source_file: "{measured}/통합테스트-실태-2026-08-10.md"
+        locator: "§한 줄 결론"
+        verify: { kind: text, path: "{measured}/통합테스트-실태-2026-08-10.md" }
+    must_not_include:
+      - "통합 테스트가 충분"
+      - "커버리지는 양호"
+    notes: >-
+      사용자가 실제로 물은 문장 그대로다. 두 축을 함께 답해야 한다:
+      영향도(파급 범위·고객 접점)와 통합 테스트 유무. 어느 한쪽만 답하면 질문에 답한 것이 아니다.
+      16 과 3 을 둘 다 요구하는 이유는 "통합 테스트가 16개 있다"까지만 말하면
+      CI 에서 13개가 제외된다는 핵심을 놓치기 때문이다.
+      기대값 근거: 측정 문서 §1(11,812) · §2(@SpringBootTest 47 = @Disabled 17 + JMH 14 + 살아있는 16) · §3(CI 3개).
+
+  - id: GQ-T2
+    type: gap
+    question: Kafka 이벤트가 모듈 경계를 넘는 지점은 통합 테스트로 검증되고 있나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "355"
+        source_quote: "Kafka: 리스너 355개, 실행되는 통합 테스트 0개"
+        source_file: "{measured}/통합테스트-실태-2026-08-10.md"
+        locator: "§5. 모듈 경계가 정확히 비어 있다 > Kafka"
+        verify: { kind: text, path: "{measured}/통합테스트-실태-2026-08-10.md" }
+      - fact: "0개"
+        source_quote: "저장소에서 Kafka 를 실제로 띄우는 테스트는"
+        source_file: "{measured}/통합테스트-실태-2026-08-10.md"
+        locator: "§5. 모듈 경계가 정확히 비어 있다 > Kafka"
+        verify: { kind: text, path: "{measured}/통합테스트-실태-2026-08-10.md" }
+    must_not_include:
+      - "충분히 검증"
+      - "통합 테스트로 덮여"
+      - "검증되고 있습니다"
+    notes: >-
+      검증되고 있지 않다가 정답이다. 리스너가 355개 파일에 있는데 Kafka 를 실제로 띄우는 테스트는
+      @EmbeddedKafka 1개뿐이고 그것이 @Disabled 다(buzzer WebPushKafkaAdapterTest.java:25).
+      "동명 테스트가 있다"를 검증됐다고 읽으면 안 된다 — Subscriber 테스트는 순수 Mockito 로
+      handle() 을 직접 부르므로 직렬화·토픽 배선·오프셋·재시도가 미검증이다.
+      기대값을 원래 "Disabled"(애노테이션 이름)로 잡았다가 **355·0개**로 바꿨다. 근거:
+      질문이 묻는 것은 '검증되는가'이고 측정 문서가 그 답으로 내놓은 수는 §5 제목의 355개·0개다.
+      @Disabled 는 그 0개가 나온 기전이지 질문의 답이 아니라서, 애노테이션 이름을 답변에
+      요구하는 것은 구현 세부에 대한 과도한 요구였다.
+
+  - id: GQ-T3
+    type: gap
+    question: Kafka 재시도를 다 쓴 실패 이벤트는 어디로 가고 누가 처리하나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "0개"
+        source_quote: "토픽을 구독하는 리스너·알림·배치가 0개다."
+        source_file: "{measured}/통합테스트-실태-2026-08-10.md"
+        locator: "§5. 실패 이벤트"
+        verify: { kind: text, path: "{measured}/통합테스트-실태-2026-08-10.md" }
+    must_not_include:
+      - "재처리 배치가 있"
+      - "알림이 발송"
+    notes: >-
+      DLT 로 보내지만 아무도 읽지 않는다가 정답이다. 재시도 후 `<토픽>.dlt` 로 보내는 코드는
+      KafkaConsumerConfig 에 있는데 `.dlt` 문자열이 저장소 전체에서 정의·사용 2건뿐이고
+      구독하는 리스너가 없다. "DLT 가 설정돼 있다"를 "처리된다"로 합성하면 실패다.
+      이 문항은 A3(복제 데이터 불일치)의 인접 위험을 잠근다: 유실이 조용히 일어난다.
+
+  # ======================================================================
+  # 정량화 가능성 (GQ-Q1 ~ GQ-Q2)
+  # ======================================================================
+  - id: GQ-Q1
+    type: gap
+    question: 고정된 서비스 구성 문제(A1)에 걸려 있는 딜 금액은 모두 얼마인가?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "금액"
+        source_quote: "이 여섯 개가 채워지지 않으면 정량화는 열리지 않는다."
+        source_file: "{measured}/정량화-가능성-2026-08-10.md"
+        locator: "§3. 보고서가 스스로 표시한 공백 6항목"
+        verify: { kind: text, path: "{measured}/정량화-가능성-2026-08-10.md" }
+    must_not_include:
+      - "34.092억"
+      - "28.05억"
+      - "6.042억"
+      - "추정하면"
+      - "가정하면"
+      - "약 34억"
+      - "걸려 있는 딜 금액은 5.08억"
+    notes: >-
+      **답이 "낼 수 없다"인 문항이다.** 이 문항의 목적은 숫자를 얻는 것이 아니라
+      나중에 누군가 억지 숫자를 내면 실패하게 만드는 것이다.
+      그래서 실질 잠금장치는 must_include 가 아니라 **must_not_include** 다.
+      근거: Need→Account→Deal(amount_krw) 경로가 0건이다(니즈 붙은 계정 4곳과
+      금액 있는 계정 12곳의 교집합 0). 그래프 금액 합계 34.092억·open 28.05억·won 6.042억은
+      실재하지만 전부 딜 13건 전체의 값이고 A1 과 무관하다.
+      그중 어느 값이든 A1 의 금액으로 제시하면 오답이므로 금칙어로 잠갔다.
+      must_include 의 "금액"은 질문에 답하려면 반드시 그 말을 해야 한다는 최소 조건이다.
+
+  - id: GQ-Q2
+    type: account_fact
+    question: 업무 항목 기준으로 데이터를 조회·추출하고 싶다는 요구는 몇 곳에서 나왔고 어디인가?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "바람화재"
+        source_quote: "그중 데이터 제공 요구는 바람화재, 마바손해보험, AIA생명보험 세 곳에서 반복된 가장 큰 수요입니다."
+        source_file: "data/sources/wiki/오로라웍스 아키텍처 개선 대상 도출 보고서 (슬라이드형).html"
+        locator: "§검토 목록 분류"
+        verify:
+          {
+            kind: text,
+            path: "{text}/오로라웍스 아키텍처 개선 대상 도출 보고서 v15 (슬라이드형).html.txt",
+          }
+      - fact: "AIA생명보험"
+        source_quote: "그중 데이터 제공 요구는 바람화재, 마바손해보험, AIA생명보험 세 곳에서 반복된 가장 큰 수요입니다."
+        source_file: "data/sources/wiki/오로라웍스 아키텍처 개선 대상 도출 보고서 (슬라이드형).html"
+        locator: "§검토 목록 분류"
+        verify:
+          {
+            kind: text,
+            path: "{text}/오로라웍스 아키텍처 개선 대상 도출 보고서 v15 (슬라이드형).html.txt",
+          }
+    must_not_include:
+      - "딜 금액은 5.08억"
+      - "합계 금액은"
+    notes: >-
+      세 곳(바람화재·마바손해보험·AIA생명보험)이 정답이고 이것은 보고서 원문에 그대로 있다.
+      함께 잠그는 것은 **금액을 붙이지 않는 것**이다. 세 곳 중 그래프에 금액이 있는 것은
+      바람화재(5.08억)뿐이고 그 금액은 이 요구와 무관한 딜 총액이므로, 요구에 금액을 붙이면 오답이다.
+      GQ-Q1 과 짝이다: 고객사는 셀 수 있고 금액은 셀 수 없다.
+
+      ⚠️ 2026-08-10 첫 채점에서 **실패했고, 기대값을 고치지 않고 실패한 채로 둔다.**
+      실패 이유가 실제 결함이기 때문이다. 관측된 것:
+      회사 이름 세 개가 든 발췌가 evidence 에 정상 인용됐는데(§기능·문서로 해결하는 항목,
+      "그중 데이터 제공 요구는 바람화재, 마바손해보험, AIA생명보험 세 곳에서 반복된 가장 큰 수요입니다")
+      답변은 "업무 항목 기준 데이터 제공 인터페이스 요구는 3건입니다."만 냈다.
+      즉 질문의 '몇 곳'만 답하고 '어디'를 버렸고, 단위도 '곳'이 아니라 '건'으로 바뀌었다.
+      검색이 아니라 **합성 단계의 누락**이다. 이 문항이 그 누락을 잡는 자리다.

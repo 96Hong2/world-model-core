@@ -1,0 +1,678 @@
+# Golden 20문항 (Phase 1A)
+#
+# 기대값의 근거는 **자료 원문**이다. 시스템 출력에서 복사한 값은 한 건도 없다
+# (이 파일을 쓴 시점에 답변 API 는 존재하지 않는다).
+#
+# 각 must_include·conflict.sides 는 `verify` 블록을 갖는다. tests/test_eval_harness.py 의
+# test_golden_quotes_exist_in_sources 가 원본 파일(xlsx 셀 / 추출 txt / slack jsonl)을 직접 열어
+# source_quote 가 실제로 그 자리에 있는지 검사한다. 이 테스트가 기대값 날조를 막는 장치다.
+#
+# 필드
+#   id / type / question / expected_route / expected_evidence_min
+#   must_include[]        {fact, source_quote, source_file, locator, verify}
+#     fact         : 답변 본문(answer.text + recommendation + estimated_parts + unknowns + gaps.basis.reason)에
+#                    반드시 나타나야 하는 문자열
+#     source_quote : 원문 그대로의 발췌. evidence.snippet 안에 이 문자열이 있어야 한다
+#     locator      : sheet!A12 / p.N / slide N / slack:{channel}/{ts}
+#   must_not_include[]    답변 어디에도 나오면 안 되는 문자열
+#   conflict              양측 병렬 제시를 요구하는 문항 전용
+#   expected_gap_verdict  gap 판정 문항 전용 (+ gap_subject_contains / forbidden_gap_verdicts /
+#                         require_out_of_scope_by_design)
+#   traceability_allow[]  집계로 산출되어 원문에 그 형태로는 없는 값. 각각 notes 에 근거를 적는다
+#   notes                 왜 이 기대값인가
+
+version: "1.0.0"
+question_count: 20
+
+# 자료 절대경로 별칭 (verify 블록에서 참조)
+paths:
+  wiki: data/sources/wiki
+  text: ./data/raw_probe/text
+  slack: ./data/sources/slack
+
+questions:
+  # ======================================================================
+  # 데모 최우선 5개 (GQ-D1 ~ GQ-D5)
+  # ======================================================================
+  - id: GQ-D1
+    type: strategic
+    question: 가나손해보험에게 어떤 Sales Point를 잡는 것이 좋은가?
+    expected_route: Q-S
+    expected_evidence_min: 2
+    must_include:
+      - fact: "2.85억"
+        source_quote: "2.85억"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "6월15일(월)!H39"
+        verify: { kind: xlsx, sheet: "6월15일(월)", cell: H39 }
+      - fact: "금액 점수 격차"
+        source_quote: "최종 우선협상대상자 선정을 위한 핵심 걸림돌(금액 점수 격차)이 확인"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "6월15일(월)!J39"
+        verify: { kind: xlsx, sheet: "6월15일(월)", cell: J39 }
+      - fact: "유지보수"
+        source_quote: "대응 방안 및 유지보수 기준 조정을 요청 받음"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "6월15일(월)!J39"
+        verify: { kind: xlsx, sheet: "6월15일(월)", cell: J39 }
+      - fact: "제안"
+        source_quote: "- 사업제안 진행중 / 6.4 제안발표 예정"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "홍길동!J10"
+        verify: { kind: xlsx, sheet: "홍길동", cell: J10 }
+    must_not_include:
+      - "수주 완료"
+      - "계약 체결됨"
+    notes: >-
+      §9 가 지정한 근거("제안 2.85억 · 금액 점수 격차")는 활동일지 6월15일(월) 시트 39행에 실재한다.
+      금액 점수가 걸림돌이라는 사실이 원문에 있으므로 Sales Point 는 가격이 아니라 유지보수 기준·범위
+      조정 쪽으로 잡아야 한다는 것이 답의 뼈대다. 승패를 단정하는 표현은 원문에 없으므로 금지한다.
+      ⚠️ config/sources.yaml 의 sales_activity_log scope 는 일일보고 최신 2장만 포함하는데
+      그 2장(6월30일·7월1일)의 5번 섹션은 데이터 0행이라 2.85억 근거가 ingest 되지 않는다.
+      기대값은 원문 기준으로 두고 scope 는 Lead 가 조정해야 한다(최종 보고에 기재).
+
+  - id: GQ-D2
+    type: strategic
+    question: 현재 회사가 개척하려는 Business Domain들은 무엇이고 각각 어느 단계인가?
+    expected_route: Q-S
+    expected_evidence_min: 3
+    must_include:
+      - fact: "보험설계지원"
+        source_quote: "보험설계지원"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "기대효과!B4"
+        verify: { kind: xlsx, sheet: "기대효과", cell: B4 }
+      - fact: "신용평가"
+        source_quote: "신용평가"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "기대효과!I4"
+        verify: { kind: xlsx, sheet: "기대효과", cell: I4 }
+      - fact: "프랜차이즈"
+        source_quote: "프랜차이즈"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "기대효과!P4"
+        verify: { kind: xlsx, sheet: "기대효과", cell: P4 }
+      - fact: "제외"
+        source_quote: "제외"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "진척도!E16"
+        verify: { kind: xlsx, sheet: "진척도", cell: E16 }
+      - fact: "세일즈킷"
+        source_quote: "세일즈킷\n완성"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "진척도!D2"
+        verify: { kind: xlsx, sheet: "진척도", cell: D2 }
+    must_not_include:
+      - "모든 BD가 동일한 단계"
+    notes: >-
+      단계의 정본은 두 시트다. 관리/후보/제외 구분은 기대효과 시트의 가로 3블록(B2 관리 BM ·
+      I2 후보 BM · P2 제외 BM)이고, 준비 진척은 진척도 시트의 6개 열이다.
+      기대효과 시트는 행 순회로는 후보/제외 블록을 못 읽는 가로 배치라, 이 문항이 파서 결함을 그대로 드러낸다.
+
+  - id: GQ-D3
+    type: gap
+    question: B2B 유통 Sales 영역에서 우리 제품이 해결할 수 있는 문제와 부족한 Capability는 무엇인가?
+    expected_route: Q-S
+    expected_evidence_min: 3
+    expected_gap_verdict: POSSIBLE
+    gap_subject_contains: "B2B"
+    must_include:
+      - fact: "견적/발주"
+        source_quote: "견적/발주 응대 및 업무 소통"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "BM 정의!H15"
+        verify: { kind: xlsx, sheet: "BM 정의", cell: H15 }
+      - fact: "유통대리점"
+        source_quote: "유통대리점/고객"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "BM 정의!G15"
+        verify: { kind: xlsx, sheet: "BM 정의", cell: G15 }
+      - fact: "개인 카톡"
+        source_quote: "업무 대화가 개인 카톡에 산재해 회사가 관리·통제 못 함"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!E2"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: E2 }
+      - fact: "iPhone"
+        source_quote: "iPhone 등에서 거래처가 카카오 대화방 -> 상담톡으로 파일 전달 못함"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!E4"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: E4 }
+    must_not_include:
+      - "기능이 없습니다"
+      - "지원하지 않습니다"
+    notes: >-
+      해결 가능한 문제는 카파전선(제조·전선) 구축 사례 15건이 실증한다. 부족한 Capability 쪽은
+      B2B유통/세일즈 BD 전체를 대표할 구축 근거가 카파전선 1개 고객사뿐이라 POSSIBLE 이 상한이다.
+      Need 근거는 강하지만 "무엇이 없다"는 명시적 진술은 어떤 자료에도 없으므로 CONFIRMED 로 올릴 수 없다.
+
+  - id: GQ-D4
+    type: multihop
+    question: 여러 Business Domain에서 공통적으로 등장하는 Need는 무엇인가?
+    expected_route: Q-M
+    expected_evidence_min: 4
+    must_include:
+      - fact: "카파전선"
+        source_quote: "업무 대화가 개인 카톡에 산재해 회사가 관리·통제 못 함"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!E2"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: E2 }
+      - fact: "마바손해보험"
+        source_quote: "매니저 개인 카톡이라 회사가 소통 공간을 들여다볼 수 없음"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!E19"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: E19 }
+      - fact: "사아캐피탈"
+        source_quote: "매니저 개인 카톡 오픈채팅이라 회사가 소통공간을 통제 못함"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!E53"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: E53 }
+      - fact: "타하렌터카"
+        source_quote: "영업 소통이 개인폰·개인카톡에 산재해 통화·문자·고객정보를 회사가 관리 못 함"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!E82"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: E82 }
+    must_not_include:
+      - "한 고객사에서만"
+    notes: >-
+      표현이 4가지("개인 카톡에 산재" / "매니저 개인 카톡" / "개인 카톡 오픈채팅" / "개인폰·개인카톡")로
+      흩어져 있고 고객사도 산업이 전부 다르다(전선 제조 · 손보 · 캐피탈 · 렌터카).
+      canonical Need 하나(need.channel_control_absent)로 묶이지 않으면 이 문항은 성립하지 않는다.
+      네 고객사 이름이 모두 나와야 "여러 BD"라는 답의 근거가 선다.
+
+  - id: GQ-D5
+    type: strategic
+    question: 어떤 Capability가 여러 산업으로 확장될 가능성이 높은가?
+    expected_route: Q-S
+    expected_evidence_min: 3
+    must_include:
+      - fact: "기업 공식 소통 채널"
+        source_quote: "기업 공식 소통 채널"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!D2"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: D2 }
+      - fact: "기업 공식 영업 채널"
+        source_quote: "기업 공식 영업 채널(법인폰·카카오 상담톡)"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!D82"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: D82 }
+      - fact: "카카오 알림톡"
+        source_quote: "카카오 알림톡/로그인 연동 인프라"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "Pain Point 목록!D63"
+        verify: { kind: xlsx, sheet: "Pain Point 목록", cell: D63 }
+      - fact: "보험사"
+        source_quote: "공통 : 보험설계지원, TM, CS, 채권추심(구상권), 퇴직연금(일부)"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "멀티BM!C3"
+        verify: { kind: xlsx, sheet: "멀티BM", cell: C3 }
+    must_not_include:
+      - "모든 Capability가 동일하게"
+    traceability_allow: []
+    notes: >-
+      "공식 채널·연동 기반" 분류는 pain 95건 중 16건으로 최다이고, 구축 고객 4사(전선 제조 · 손보 ·
+      캐피탈 · 렌터카) 전부에 나타난다. 산업이 전부 다른데 같은 Capability 계열이 반복된다는 것이
+      확장 가능성의 근거다. 멀티BM 시트는 한 산업이 여러 BD 를 동시에 필요로 한다는 별도 축의 근거다.
+
+  # ======================================================================
+  # 게이트 시연 3개 (GQ-D6 ~ GQ-D8)
+  # ======================================================================
+  - id: GQ-D6
+    type: rare_critical
+    question: 하늘IT와 구독 사업을 추진하려면 반드시 해결해야 할 기술 전제는 무엇인가?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "멀티테넌트"
+        source_quote: "멀티테넌트 구조 개발 필요 (Saas로 이야기되었는데 이 부분 검토 후 협의 필요)"
+        source_file: "{wiki}/하늘IT 협업 관련 검토 사항.pdf"
+        locator: "p.2"
+        verify:
+          { kind: text, path: "{text}/하늘IT 협업 관련 검토 사항.pdf.txt" }
+      - fact: "유저 라이선스"
+        source_quote: "개발 필요 : 유저 라이선스 구조 등 고려하면 범위가 작진 않음."
+        source_file: "{wiki}/하늘IT 협업 관련 검토 사항.pdf"
+        locator: "p.2"
+        verify:
+          { kind: text, path: "{text}/하늘IT 협업 관련 검토 사항.pdf.txt" }
+      - fact: "한서버"
+        source_quote: "현 구조 (교보+오로라소프트 한서버에서 멀티 고객"
+        source_file: "{wiki}/하늘IT 협업 관련 검토 사항.pdf"
+        locator: "p.2"
+        verify:
+          { kind: text, path: "{text}/하늘IT 협업 관련 검토 사항.pdf.txt" }
+    must_not_include:
+      - "이미 지원"
+      - "이미 제공"
+      - "이미 갖추"
+    notes: >-
+      이 사실은 문서 23종 중 이 파일 한 곳에만 있다(1회 등장). 반대로 온보딩 문서는 제품을
+      "엔터프라이즈 멀티테넌시 애플리케이션 · 센터(Center) 기반 데이터 격리"로 소개해서,
+      단순 키워드 검색이면 그쪽이 먼저 잡혀 "이미 지원한다"는 틀린 답이 나온다.
+      must_not_include 3종이 그 오답을 잡는 장치다. Graph 에 반영되지 않았더라도
+      Evidence fulltext top-K("추가 원문 근거")로는 반드시 노출돼야 한다(Gate 1A 항목 4).
+
+  - id: GQ-D7
+    type: conflict
+    question: 개인 메신저를 업무에 쓴 미국 금융권에 부과된 벌금 규모는 얼마인가?
+    expected_route: Q-E
+    expected_evidence_min: 2
+    must_include:
+      - fact: "미국"
+        source_quote: "미국 금융권 부과된 벌금 180M 달러"
+        source_file: "{wiki}/오로라웍스_보험설계지원_솔루션_바다손해보험_제안.html"
+        locator: "업무 개선점 > 개인정보 이슈"
+        verify:
+          {
+            kind: text,
+            path: "{text}/오로라웍스_보험설계지원_솔루션_바다손해보험_제안.html.txt",
+          }
+    must_not_include:
+      - "정확한 금액은 180M 달러입니다"
+      - "정확한 금액은 18억 달러입니다"
+    conflict:
+      subject: 미국 금융권 개인 메신저 사용 벌금 규모
+      sides:
+        - value: "180M 달러"
+          source_quote: "상시 보안 리스크 노출 · 정보 관리 개인 의존 (미국 금융권 부과된 벌금 180M 달러 - 한화 약 2,564억 원)"
+          source_file: "{wiki}/오로라웍스_보험설계지원_솔루션_바다손해보험_제안.html"
+          locator: "업무 개선점 > 개인정보 이슈"
+          verify:
+            {
+              kind: text,
+              path: "{text}/오로라웍스_보험설계지원_솔루션_바다손해보험_제안.html.txt",
+            }
+        - value: "18억 달러"
+          source_quote: "18억 달러 (약 2조 5,668억) 벌금 부과"
+          source_file: "{wiki}/[오로라소프트] B2B2C를 연결하는 연금 비즈니스 공식 채널 소개서_V2.0.pptx"
+          locator: "slide 14"
+          verify:
+            {
+              kind: text,
+              path: "{text}/[오로라소프트] B2B2C를 연결하는 연금 비즈니스 공식 채널 소개서_V2.0.pptx.txt",
+            }
+    notes: >-
+      같은 회사가 만든 두 제안서가 정확히 10배 다른 값을 쓴다(180M 달러 ≈ 2,564억 vs 18억 달러 ≈ 2조 5,668억).
+      1A 는 conflict 를 측정만 하지만, 한쪽으로 단일 합성하는 것은 이 단계에서도 금지다.
+      기대값은 "양측을 나란히 제시하고 어느 쪽이 맞는지 확인이 필요하다"이며, 한쪽을 정답으로
+      단정하는 문장이 나오면 실패다.
+
+  - id: GQ-D8
+    type: product_fact
+    question: 비회원 고객이 같은 기기로 재방문하면 상담이 이어지나? 언제부터 되나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "2.0.0"
+        source_quote: "비회원 고객이 같은 기기로 재방문하면 진행 중인 상담을 이어서 계속할 수 있습니다."
+        source_file: "{wiki}/오로라웍스 기능맵 v2.1.xlsx"
+        locator: "v2.1!F15"
+        verify: { kind: xlsx, sheet: "v2.1", cell: F15 }
+      - fact: "비회원 상담 연속성 유지"
+        source_quote: "비회원 상담 연속성 유지"
+        source_file: "{wiki}/오로라웍스 기능맵 v2.1.xlsx"
+        locator: "v2.1!E15"
+        verify: { kind: xlsx, sheet: "v2.1", cell: E15 }
+    must_not_include:
+      - "1.0.0부터"
+      - "1.1.0부터"
+      - "2.1.0부터"
+    notes: >-
+      기능맵 v2.1 시트 15행의 버전 컬럼은 I(1.0.0)='.' J(1.1.0)='.' K(2.0.0)='O' L(2.1.0)='O' 이므로
+      introduced_in 은 2.0.0 이다(왼쪽부터 처음 O 가 나오는 컬럼). 기능맵은 이 사실의 정본이라
+      §4 ⑥ (2)에 따라 VERIFIED Claim 이 될 수 있는 몇 안 되는 문항이다.
+      다른 버전을 답하면 틀린 것이므로 must_not_include 로 못 박는다.
+
+  # ======================================================================
+  # product fact 2개 추가 (GQ-D8 포함 총 3)
+  # ======================================================================
+  - id: GQ-P2
+    type: product_fact
+    question: 진행 중인 대화를 별도 팝업 창으로 띄우는 기능은 어느 버전부터 제공되나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "2.1.0"
+        source_quote: "진행 중인 대화를 브라우저 팝업 형태의 미니창으로 띄워 별도 창에서 이어서 대화할 수 있습니다."
+        source_file: "{wiki}/오로라웍스 기능맵 v2.1.xlsx"
+        locator: "v2.1!F174"
+        verify: { kind: xlsx, sheet: "v2.1", cell: F174 }
+      - fact: "대화형 브라우저 팝업"
+        source_quote: "대화형 브라우저 팝업"
+        source_file: "{wiki}/오로라웍스 기능맵 v2.1.xlsx"
+        locator: "v2.1!E174"
+        verify: { kind: xlsx, sheet: "v2.1", cell: E174 }
+    must_not_include:
+      - "2.0.0부터"
+      - "1.0.0부터"
+    notes: >-
+      174행의 버전 컬럼은 I·J·K 가 모두 '.' 이고 L(2.1.0)만 'O' 라 2.1.0 신규다.
+      GQ-D8(2.0.0부터)과 짝을 이뤄, 버전 컬럼을 실제로 읽는지 아니면 "최신 버전"이라고
+      뭉뚱그리는지 구분한다.
+
+  - id: GQ-P3
+    type: product_fact
+    question: 카카오 OpenBuilder 챗봇 연동은 지원하나? 어느 버전부터인가?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "2.0.0"
+        source_quote: "카카오 OpenBuilder 챗봇의 콜백·스킬(FAQ 조회)을 연동하고 쿼터를 관리합니다."
+        source_file: "{wiki}/오로라웍스 기능맵 v2.1.xlsx"
+        locator: "v2.1!F11"
+        verify: { kind: xlsx, sheet: "v2.1", cell: F11 }
+      - fact: "카카오 OpenBuilder 봇 연동"
+        source_quote: "카카오 OpenBuilder 봇 연동"
+        source_file: "{wiki}/오로라웍스 기능맵 v2.1.xlsx"
+        locator: "v2.1!E11"
+        verify: { kind: xlsx, sheet: "v2.1", cell: E11 }
+    must_not_include:
+      - "지원하지 않습니다"
+      - "2.1.0부터"
+    notes: >-
+      기능맵 11행. 같은 2.0.0 도입이라도 GQ-D8 과 화면 소속이 다르다
+      (둘 다 Guest Zone(고객 화면) > 상담 대화접수 이지만 상세분류가 '접수 경로' vs '편의성 제공').
+      엔티티 링킹이 기능명을 제대로 구분하는지 본다.
+
+  # ======================================================================
+  # account / deal fact 3개
+  # ======================================================================
+  - id: GQ-A1
+    type: entity
+    question: 가나손해보험 딜은 지금 어느 단계인가? 언제 기준인가?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "제안"
+        source_quote: "제안고객"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "홍길동!G10"
+        verify: { kind: xlsx, sheet: "홍길동", cell: G10 }
+      - fact: "2026-06-01"
+        source_quote: "- 사업제안 진행중 / 6.4 제안발표 예정"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "홍길동!J10"
+        verify: { kind: xlsx, sheet: "홍길동", cell: J10 }
+    must_not_include:
+      - "운영고객"
+      - "수주"
+    traceability_allow:
+      - "2026-06-01"
+    notes: >-
+      홍길동 시트 10행. F=가나손해보험 · G=제안고객 · I(최종활동일)=2026-06-01 · J=활동내역.
+      단계만 답하고 관측 시점을 빼면 안 된다는 것을 이 문항이 강제한다(§C-8 이 지적한
+      "관측 시점 미표기" 문제의 예방). 최종활동일은 셀이 datetime 이라 문자열 형태
+      "2026-06-01" 로는 원문에 없으므로 traceability_allow 에 둔다.
+
+  - id: GQ-A2
+    type: gap
+    question: 마바손해보험이 요청한 모바일 PDF 다운로드는 제공되나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    expected_gap_verdict: CONFIRMED
+    gap_subject_contains: "PDF"
+    must_include:
+      - fact: "보안 정책상 제한"
+        source_quote: "보안 정책상 제한"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "대응 불가·제약!E13"
+        verify: { kind: xlsx, sheet: "대응 불가·제약", cell: E13 }
+      - fact: "뷰어"
+        source_quote: "PC와 동일한 PDF 뷰어 기능은 개발 검토 중"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "대응 불가·제약!F13"
+        verify: { kind: xlsx, sheet: "대응 불가·제약", cell: F13 }
+    must_not_include:
+      - "제공됩니다"
+      - "정상 제공"
+    notes: >-
+      CONFIRMED gap 의 정석 사례다. "명시적 기능 부재 확인" 근거가 원문에 직접 있다
+      (처리 결과 = '보안 정책상 제한', 안내 = '고객 정보보호팀도 다운로드 불가 의견').
+      GQ-G1(POSSIBLE)과 짝이며, 두 문항이 같이 통과해야 gap 3값이 실제로 구분되는 것이다.
+
+  - id: GQ-A3
+    type: entity
+    question: AG(외부 모집사)의 영업 성과를 평가하고 순위를 매기는 기능을 제공하나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    gap_subject_contains: "AG"
+    forbidden_gap_verdicts: [CONFIRMED]
+    require_out_of_scope_by_design: true
+    must_include:
+      - fact: "핵심 목적"
+        source_quote: "현재는 AG의 영업 성과를 평가하고 순위를 매기는 시스템이 아닙니다."
+        source_file: "{wiki}/자동차금융 Open Book.pdf"
+        locator: "p.8"
+        verify: { kind: text, path: "{text}/자동차금융 Open Book.pdf.txt" }
+      - fact: "기술적으로는 가능"
+        source_quote: "분석하고 평가하는 것이 기술적으로는 가능합니다. 하지만 이것이"
+        source_file: "{wiki}/자동차금융 Open Book.pdf"
+        locator: "p.9"
+        verify: { kind: text, path: "{text}/자동차금융 Open Book.pdf.txt" }
+    must_not_include:
+      - "기능이 없어서 불가능"
+      - "구현할 수 없습니다"
+    notes: >-
+      "기술적으로는 가능하지만 핵심 목적이 아니다"는 의도적 비범위이지 CONFIRMED GAP 이 아니다.
+      원문이 "향후에는 확장될 수도 있는 부분"이라고까지 적고 있어서, 이것을 기능 부재로 답하면
+      제품 판단을 왜곡한다. gap 항목이 만들어진다면 out_of_scope_by_design=true 여야 한다.
+
+  # ======================================================================
+  # BusinessDomain 2개
+  # ======================================================================
+  - id: GQ-B1
+    type: entity
+    question: 자동차금융 BD의 타겟 기업과 시장 규모는 어떻게 되나?
+    expected_route: Q-E
+    expected_evidence_min: 2
+    must_include:
+      - fact: "35~40개사"
+        source_quote: "(여신)금융사\n35~40개사"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "시장사이즈!C4"
+        verify: { kind: xlsx, sheet: "시장사이즈", cell: C4 }
+      - fact: "120억 ~ 140억"
+        source_quote: "120억 ~ 140억\n(3.5억 기준)"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "시장사이즈!D4"
+        verify: { kind: xlsx, sheet: "시장사이즈", cell: D4 }
+      - fact: "업무지원 담당자"
+        source_quote: "업무지원 담당자"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "BM 정의!E4"
+        verify: { kind: xlsx, sheet: "BM 정의", cell: E4 }
+    must_not_include:
+      - "시장 규모는 확인되지 않"
+    notes: >-
+      시장 사이즈 셀은 숫자가 아니라 개행 포함 문자열("120억 ~ 140억\n(3.5억 기준)")이다.
+      숫자로 정규화하면서 원문을 버리면 "(3.5억 기준)"이라는 단가 전제가 사라져 답이 오해를 부른다.
+      그래서 원문 문자열 보존 여부를 이 문항으로 시험한다.
+
+  - id: GQ-B2
+    type: entity
+    question: BD 중 제외로 분류된 것은 무엇인가?
+    expected_route: Q-E
+    expected_evidence_min: 2
+    must_include:
+      - fact: "프랜차이즈"
+        source_quote: "프랜차이즈"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "기대효과!P4"
+        verify: { kind: xlsx, sheet: "기대효과", cell: P4 }
+      - fact: "플랫폼"
+        source_quote: "플랫폼"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "기대효과!P5"
+        verify: { kind: xlsx, sheet: "기대효과", cell: P5 }
+      - fact: "제외"
+        source_quote: "제외"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "진척도!E17"
+        verify: { kind: xlsx, sheet: "진척도", cell: E17 }
+    must_not_include:
+      - "제외된 BD는 없"
+    notes: >-
+      기대효과 시트 제외 BM 블록(P4 프랜차이즈 · P5 플랫폼)과 진척도 시트 이관 여부 열의
+      '제외' 표기(E16 프랜차이즈 · E17 플랫폼)가 서로 일치한다. 두 시트가 독립 근거이므로
+      evidence 최소 2건을 요구한다.
+
+  # ======================================================================
+  # multi-hop 1개 추가 (GQ-D4 포함 총 2)
+  # ======================================================================
+  - id: GQ-M2
+    type: multihop
+    question: 카카오 플랫폼 제약 때문에 제공하지 못한 요구는 무엇이고 어느 고객사에서 나왔나?
+    expected_route: Q-M
+    expected_evidence_min: 3
+    must_include:
+      - fact: "발신 메시지 수정"
+        source_quote: "발신 메시지 수정"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "대응 불가·제약!C2"
+        verify: { kind: xlsx, sheet: "대응 불가·제약", cell: C2 }
+      - fact: "상담톡 메시지 삭제"
+        source_quote: "상담톡 메시지 삭제"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "대응 불가·제약!C3"
+        verify: { kind: xlsx, sheet: "대응 불가·제약", cell: C3 }
+      - fact: "카파전선"
+        source_quote: "카파전선·마바손해보험"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "대응 불가·제약!D2"
+        verify: { kind: xlsx, sheet: "대응 불가·제약", cell: D2 }
+      - fact: "카카오 인앱 브라우저"
+        source_quote: "카카오 인앱 브라우저 세션 유지"
+        source_file: "{wiki}/고객사 Pain Point·구축 대응 통합 관리.xlsx"
+        locator: "대응 불가·제약!C7"
+        verify: { kind: xlsx, sheet: "대응 불가·제약", cell: C7 }
+    must_not_include:
+      - "제약 사례는 없"
+    notes: >-
+      발생 고객사 열은 '카파전선·마바손해보험' 처럼 가운뎃점으로 묶인 복합값이라, 분해하지 않으면
+      "카파전선·마바손해보험"이라는 없는 회사 하나가 생긴다. 이 문항이 그 분해를 강제한다.
+      구분='카카오 플랫폼 제약'인 행은 원문에 7건(2~8행) 있다.
+
+  # ======================================================================
+  # Slack 근거 1개
+  # ======================================================================
+  - id: GQ-S1
+    type: slack
+    question: 하늘IT와 어떤 접촉이 있었나?
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "솔루션 소개"
+        source_quote: "하늘IT에서 채팅영역 포함된 SI사업 포착시 정보 공유 및 당사 솔루션 우선 검토 요청"
+        source_file: "{slack}/all-영업활동공유.jsonl"
+        locator: "slack:C087J33P9PT/1751610789.108349"
+        verify:
+          kind: slack
+          path: "{slack}/all-영업활동공유.jsonl"
+          ts: "1751610789.108349"
+      - fact: "하늘IT"
+        source_quote: "[하늘IT - 오로라소프트 솔루션 소개 진행]"
+        source_file: "{slack}/all-영업활동공유.jsonl"
+        locator: "slack:C087J33P9PT/1751610789.108349"
+        verify:
+          kind: slack
+          path: "{slack}/all-영업활동공유.jsonl"
+          ts: "1751610789.108349"
+    must_not_include:
+      - "접촉 이력이 없"
+    notes: >-
+      Slack 발췌가 쓰레드·메시지 locator(slack:{channel_id}/{ts})와 함께 인용되는지 보는 문항이다.
+      같은 채널에 하늘IT 언급 메시지가 73건 있는데, 그중 대부분은 경쟁 입찰 참여사로 스쳐 지나가는
+      언급이고 직접 접촉 기록은 이 메시지다. 참석자 실명은 발췌에 넣지 않는다.
+
+  # ======================================================================
+  # gap 구분 1개 (POSSIBLE) — GQ-A2(CONFIRMED)와 짝
+  # ======================================================================
+  - id: GQ-G1
+    type: gap
+    question: 퇴직연금 BD에서 본사가 외부 Guest를 통제하지 못하는 문제에 대응할 Capability 근거가 있나?
+    expected_route: Q-S
+    expected_evidence_min: 1
+    expected_gap_verdict: POSSIBLE
+    gap_subject_contains: "퇴직연금"
+    must_include:
+      - fact: "통제 불가"
+        source_quote: "통제 불가 : 보험설계지원, 자동차금융, 퇴직연금, WM, 제조"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "Guest통제!B2"
+        verify: { kind: xlsx, sheet: "Guest통제", cell: B2 }
+      - fact: "기업HR"
+        source_quote: "기업HR"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "BM 정의!G7"
+        verify: { kind: xlsx, sheet: "BM 정의", cell: G7 }
+    must_not_include:
+      - "확인된 기능 부재"
+      - "제품에 없습니다"
+      - "대응할 수 없습니다"
+    notes: >-
+      Need 근거는 강하다. BD Overview 가 퇴직연금을 'Guest 통제 불가' BD 로 명시하고,
+      BM 정의는 Guest 를 기업HR·재무/인사·가입자로 특정한다.
+      반대편 Capability 근거는 없다. 구축 사례 정본인 pain 레지스트리의 고객사 4곳
+      (마바손해보험·사아캐피탈·카파전선·타하렌터카)에 퇴직연금사업자가 없다.
+      그런데 "기능이 없다"고 적은 자료도 없으므로 CONFIRMED 로 올릴 수 없다 → POSSIBLE 이 정답.
+      연결이 없다는 사실만으로 CONFIRMED 가 나오면 이 문항은 실패다(§8 상시 불변 원칙).
+
+  # ======================================================================
+  # masking 1개
+  # ======================================================================
+  - id: GQ-K1
+    type: masking
+    question: 가나손해보험 담당자 연락처를 알려줘.
+    expected_route: Q-E
+    expected_evidence_min: 1
+    must_include:
+      - fact: "연락처"
+        source_quote: "고객사 담당자"
+        source_file: "{wiki}/영업본부_방문 및 접촉 활동 일지.xlsx"
+        locator: "7월13일~16일!H7"
+        verify:
+          { kind: xlsx, sheet: "7월13일~16일", cell: H7, mode: sheet_contains }
+    must_not_include:
+      - "연락처는 다음과 같습니다"
+      - "담당자 휴대전화는"
+    notes: >-
+      활동일지 7월13일~16일 시트 I열에는 실제 휴대전화 번호가 15셀 들어 있고, 7월6일~10일 시트에는
+      43셀이 있다. 마스킹이 파서 단계에서 걸리지 않으면 이 질문 하나로 전부 새어 나온다.
+      기대값은 "담당자 열은 있지만 연락처는 개인정보라 제공하지 않는다"이고,
+      번호가 한 자리라도 노출되면 실패다(Gate 1A 항목 5 직접 시험).
+      must_not_include 에 "010-" 을 넣지 않는 이유는 마스킹 결과 문자열 자체가 "010-****-****" 라서
+      정상 동작을 오탐하기 때문이다. 실제 노출 판정은 masking 채점기(정규식)가 한다.
+
+  # ======================================================================
+  # conflict 1개 추가 (GQ-D7 포함 총 2)
+  # ======================================================================
+  - id: GQ-C2
+    type: conflict
+    question: 제조·물류·렌털·프랜차이즈는 Business Domain인가, 아니면 BD의 타겟 기업 유형인가?
+    expected_route: Q-E
+    expected_evidence_min: 2
+    must_include:
+      - fact: "BD Overview"
+        source_quote: "제조"
+        source_file: "{wiki}/BD Overview.xlsx"
+        locator: "진척도!B10"
+        verify: { kind: xlsx, sheet: "진척도", cell: B10 }
+    must_not_include:
+      - "이 문제는 해소되었습니다"
+    conflict:
+      subject: 제조·물류·렌털·프랜차이즈의 BD 지위
+      sides:
+        - value: "타겟기업 유형"
+          source_quote: "아래는 BD가 아니라 BD의 타겟기업 유형입니다. 절대 bd 값으로 쓰지 마십시오."
+          source_file: "{wiki}/LeadFlow_BD분류_프롬프트.md"
+          locator: "판정 1 > 금지"
+          verify: { kind: text, path: "{text}/LeadFlow_BD분류_프롬프트.md.txt" }
+        - value: "BD 행"
+          source_quote: "식자재유통 (푸드서비스)"
+          source_file: "{wiki}/BD Overview.xlsx"
+          locator: "진척도!B11"
+          verify: { kind: xlsx, sheet: "진척도", cell: B11 }
+    notes: >-
+      DECISIONS.md A-4 가 잠정 확정한 충돌이다. LeadFlow 프롬프트는 이 6개를 bd 값으로 쓰지 말라고
+      금지하고, BD Overview 진척도·시장사이즈·기대효과 시트는 같은 이름을 BD 행으로 둔다.
+      Lead 판단은 "BusinessDomain 노드의 정본은 BD Overview, LeadFlow 진술은 CANDIDATE Claim 으로
+      남기고 모순을 드러낸다"이다. 한쪽을 지우고 답하면 실패다.
