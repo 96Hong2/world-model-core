@@ -1,0 +1,85 @@
+{
+  "question_id": "GQ-K1",
+  "answer": {
+    "answer": {
+      "text": "연락처는 개인정보라 알려드리지 않습니다. 영업 활동일지에 고객사 담당자 열과 연락처 열이 있지만, 전화번호는 수집 단계에서 마스킹되어 그대로 저장되지 않습니다[1]. 담당 영업대표를 통해 확인하시기 바랍니다."
+    },
+    "citations": [
+      {
+        "marker": 1,
+        "evidence_id": "ev_activity_contact_column",
+        "quoted_span": "마스킹되어 그대로 저장되지 않습니다"
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "ev_activity_contact_column",
+        "source_id": "src_sales_activity_log",
+        "locator": "7월13일~16일!r7",
+        "snippet": "일자 | 담당자 | 고객사 | 활동유형 | 활동내용 | 결과 | 고객사 담당자 | 연락처 → 값은 [담당자] / 010-****-**** 로 마스킹됨",
+        "authority_label": {
+          "tier": "T1",
+          "claim_domain": "deal_fact",
+          "source_type": "sales_activity_log",
+          "policy_version": "1.0.0"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      }
+    ],
+    "evidence_strength": {
+      "band": "MEDIUM",
+      "basis": {
+        "independent_evidence": 1,
+        "highest_authority": "sales_activity_log",
+        "contradiction": "none",
+        "recency": "current"
+      }
+    },
+    "unknowns": [
+      "개인 연락처는 정책상 답변에 담지 않습니다."
+    ],
+    "gaps": [],
+    "subgraph": {
+      "nodes": [
+        {
+          "id": "acct_kb_nonlife",
+          "labels": [
+            "Account"
+          ],
+          "label_text": "가나손해보험",
+          "rank": "focal",
+          "status": null,
+          "citation_markers": [
+            1
+          ]
+        }
+      ],
+      "edges": [],
+      "truncated": false
+    },
+    "route": {
+      "retriever": "Q-E",
+      "matched_rule": "entity_lookup:Account",
+      "llm_classifier_used": false,
+      "claim_domain": "deal_fact"
+    },
+    "notices": {
+      "results_may_be_incomplete": true,
+      "critical_unverified_included": false,
+      "raw_signal_count": 1
+    },
+    "raw_signals": [
+      {
+        "evidence_id": "ev_activity_contact_r9",
+        "source_id": "src_sales_activity_log",
+        "locator": "7월13일~16일!I9",
+        "snippet": "고객사 담당자 | 연락처 → 010-0000-0000",
+        "match_terms": [
+          "연락처"
+        ],
+        "in_graph": false
+      }
+    ]
+  }
+}

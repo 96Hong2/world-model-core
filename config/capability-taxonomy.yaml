@@ -1,0 +1,407 @@
+# Capability Taxonomy 초판 (A0 확정)
+#
+# 굵기 (v1.0 §D-1)
+#   Capability = "영업 언어 수준의 해결 능력 + add-on 라이선스 단위".
+#   기능맵 393개 Feature 굵기가 아니다. 영업 자료는 이 굵기로 말하며, 이 층이 없으면 추출이 고객 요구를
+#   393개 기능에 강제 오매핑한다.
+#
+# 수록 기준
+#   실측 문서에서 확인한 표현만 넣었다. 모든 항목에 evidence_hint(locator) 가 있고 추측 항목은 0개다.
+#   ⚠️ 정정: 지시문에 "제품소개서 vision 본에 23개 Capability 가 정리돼 있다"고 되어 있으나, 63쪽 전문을 읽은 결과
+#   "23개"로 번호 매겨진 목록은 존재하지 않는다. 실제로 있는 것은 '제품 특징' 14슬라이드(p15~28)와
+#   '제품 기능' 30슬라이드(p30~59)다. 23이라는 숫자의 출처는 미확인이다.
+#
+# 운용 규칙
+#   canonical 항목은 이 파일에만 존재한다. LLM 은 매핑 후보 제안까지만, 신규 canonical 생성 금지.
+
+version: "1.0.0"
+item_count: 30
+
+capabilities:
+  - id: cap.official_kakao_channel
+    name: 기업 공식 카카오 채널화
+    definition: 개인 카카오톡 소통을 회사가 소유·관리하는 공식 비즈니스 채널로 옮긴다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.channel_control_absent]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 15 ('Digitize Kakao Talk / 더 이상 개인 기록이 아닌 기업용 카카오톡')"
+      - "사용자 교육_마바손해보험 vision#PAGE 3 (고객사 채널명 실물 '마바손보 GA 설계지원')"
+      - "pain!Pain Point 목록 No.1·6·16·50·81 (4개 고객사 전부의 1순위 대응 기능)"
+
+  - id: cap.multi_channel_hub
+    name: 다채널 통합 허브
+    definition: 카카오·웹·앱·메일·LINE 등 서로 다른 채널의 소통을 한 곳에서 처리하고 같은 고객으로 묶는다.
+    addon: false
+    license_gated: false
+    addresses_needs:
+      [need.channel_control_absent, need.conversation_record_not_asset]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 17 ('Communication Channel Hub / 다양한 채널의 모든 활동을 한 곳에서')"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 18 ('외부 사용자는 평소처럼 카카오톡으로 소통해도, 메일을 보내도 괜찮습니다')"
+      - "보험설계지원 업무 도메인의 타부서 확장.pdf#PAGE 11 (하이브리드 채널: kakao, app, web 통합 + 방당 수수료 정책)"
+
+  - id: cap.bizform
+    name: 비즈폼(별도 양식으로 민감정보 수집)
+    definition: 채팅창이 아니라 지정된 폼으로 개인정보·첨부를 받아 수신 권한자만 확인하게 한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.pii_masking_compliance, need.manual_data_entry]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 24 (BIZ-FORM 템플릿 기반 정보·첨부 요청)"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 47 (문항 타입·연동 ID·첨부 확장자·용량 지정)"
+      - "[자차캐피탈]...docx 별첨 ▐ 2 ('채팅창 입력이 아닌 별도 <데이터 폼>에 CA가 개인정보를 입력 후 전달 → 수신자로 지정된 당사 직원만 확인')"
+      - "마바캐피탈 오로라웍스 솔루션소개.pptx.pdf#PAGE 13"
+
+  - id: cap.pii_masking
+    name: 개인정보 자동·수동 마스킹
+    definition: 사전 정의 패턴으로 자동 마스킹하고, 드래그로 수동 마스킹하며, 이미지 속 개인정보도 가려서 보낼 수 있다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.pii_masking_compliance]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 59 (자동: 사전 정의 패턴·고객사 정책 적용 / 수동: 드래그)"
+      - "마바캐피탈 오로라웍스 솔루션소개.pptx.pdf#PAGE 14 (이미지 편집으로 해당 부분을 가려 보낼 수 있습니다)"
+      - "오로라웍스 아키텍처 정의서.docx CSAD24 (로그·API 마스킹, 우선순위 1)"
+      - "app/aurorasuite-portal/.../deployment_guide/talkcore/deployment-talkcore-persnal-info-masking.adoc"
+      - "pain!Pain Point 목록 No.23·29·55 (자동 마스킹 작성일 24/48h·해제 결재)"
+
+  - id: cap.sensitive_input_block
+    name: 단체 대화방 민감정보 입력 차단
+    definition: 주민번호·계좌번호 같은 민감정보를 단체 대화방 입력 단계에서 막고 비즈폼으로 유도한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.pii_masking_compliance]
+    evidence_hint:
+      - "마바캐피탈 오로라웍스 솔루션소개.pptx.pdf#PAGE 13 ('주민번호·계좌번호 같은 민감정보는 단체 대화방 입력 단계에서 막힙니다')"
+      - "[자차캐피탈]...docx === [TABLE 1] === ① 입력 내용(금지어 입력 제한 無) — 고객이 지목한 부재 항목"
+      - "app/aurorasuite-portal/.../ban-word 관련 설정 화면(.auroraworks/design-system/workspace/templates/settings-ban-word.html)"
+
+  - id: cap.conversation_archive_audit
+    name: 대화이력 보관·조회 로그·감사 추적
+    definition: 모든 대화를 회사 시스템에 남기고 누가 언제 조회했는지까지 기록해 분쟁 시 입증할 수 있게 한다.
+    addon: false
+    license_gated: false
+    addresses_needs:
+      [need.conversation_record_not_asset, need.retention_policy_conflict]
+    evidence_hint:
+      - "오로라웍스 아키텍처 정의서.docx CSAD16 (감사 로깅, 우선순위 1. RDB/ES/파일 선택 저장)"
+      - "pain!Pain Point 목록 No.24 (대화이력 보관·조회로그·구간/파일 암호화)"
+      - "[사아캐피탈]...추진안.docx === [TABLE 2] === ④ (전 대화 사내 시스템 저장, 책무구조도 대응)"
+
+  - id: cap.data_retention_auto_purge
+    name: 보관기간 초과 데이터 자동 파기
+    definition: 정해진 보관 기간이 지난 업무 데이터·첨부파일을 배치로 자동 삭제한다.
+    addon: false
+    license_gated: false
+    addresses_needs:
+      [need.retention_policy_conflict, need.pii_masking_compliance]
+    evidence_hint:
+      - "오로라웍스 아키텍처 정의서.docx CSAD25 (보관 기간이 초과된 업무 데이터 자동 삭제 배치, 우선순위 1)"
+      - "마바캐피탈 오로라웍스 솔루션소개.pptx.pdf#PAGE 13 (파일은 90일 뒤 자동으로 지워집니다)"
+      - "pain!Pain Point 목록 No.69 (메시지 보관기간 3개월)"
+    conflict_note: "보관 기간 값이 문서마다 90일 / 3개월 / 5년으로 갈린다. 대상(첨부파일 vs 대화 이력)이 다를 가능성이 있으나 명시되지 않았다."
+
+  - id: cap.encryption
+    name: 저장·구간 암호화
+    definition: 고객 개인정보를 저장 시 암호화하고 통신 구간과 파일도 암호화한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.pii_masking_compliance]
+    evidence_hint:
+      - "오로라웍스 아키텍처 정의서.docx CSAD23 ('고객 개인정보를 저장 시 AES 기반으로 암호화하고 조회 시 복호화', 우선순위 1)"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 25 (기업 보안 정책 세트: 암호화(데이터·구간))"
+      - "pain!Pain Point 목록 No.24·74"
+
+  - id: cap.external_user_management
+    name: 외부 사용자(파트너/게스트) 등록·그룹·인증 입장
+    definition: 외부 인력을 회사가 등록·승인·그룹화하고 본인인증을 거쳐야만 대화방에 들어오게 한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.external_identity_verification]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 53 (외부 사용자·그룹 관리, 계층형 그룹)"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 9 (외부 사용자 유형: GA·CA·FC·유통사·기타)"
+      - "[자차캐피탈]...docx === [TABLE 4] === (업무방 생성 → 알림톡 링크 → 파트너 입장 → 휴대폰번호 기반 인증 및 내부시스템 등록번호 검증 → 대화)"
+      - "pain!Pain Point 목록 No.17·22·51·53·71"
+      - "기능맵!v2.1 상세분류 '외부 사용자'·'고객·외부 사용자 목록'·'고객·외부 사용자 그룹'·'고객·외부 사용자 유형'"
+
+  - id: cap.alimtalk_invite
+    name: 카카오 알림톡 초대·발송
+    definition: 알림톡으로 대화방 초대장과 안내를 발송하고 미도달 시 대체 발송한다.
+    addon: false
+    license_gated: false
+    addresses_needs:
+      [need.notification_reachability, need.external_identity_verification]
+    evidence_hint:
+      - "사용자 교육_마바손해보험 vision#PAGE 4 (대화방 개설 → 카카오 알림톡 초대장 → 초대 수락 → 카카오 로그인 인증(최초 1회) → 입장)"
+      - "오로라웍스 사용자 매뉴얼 (PC, 협업센터) v2.1.pptx#SLIDE 8~9 (외부사용자 카카오 알림톡 초대장 발송 여부 선택)"
+      - "pain!Pain Point 목록 No.68 (알림톡 발송 4종)·No.84 (SMS 대체 발송)"
+      - "app/aurorasuite-portal/.../kakao_guide/** (알림톡 연동 가이드)"
+
+  - id: cap.push_notification
+    name: 앱 푸시·트레이 알림
+    definition: 신규 메시지와 처리 결과를 모바일 푸시와 데스크톱 트레이 알림으로 즉시 알린다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.notification_reachability]
+    evidence_hint:
+      - "pain!Pain Point 목록 No.43 (앱 푸시 상세 알림, 알림톡→앱푸시 전환)·No.85 (FCM 푸시 연동)"
+      - "오로라웍스 사용자 매뉴얼 (PC, 협업센터) v2.1.pptx#SLIDE 4 (화면 알림 / 트레이 알림 — 지원 브라우저 크롬·엣지)"
+      - "기능맵!v2.1 상세분류 '알림'·'뱃지 알림 제공'"
+
+  - id: cap.mobile_workspace
+    name: 모바일 워크스페이스(앱)
+    definition: 외근 중에도 휴대폰에서 대화·응대·고객정보 처리를 할 수 있는 전용 앱을 제공한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.mobile_field_response]
+    evidence_hint:
+      - "기능맵!v2.1 화면 'MobileWorkspace (사용자화면)' 데이터행 36 (영역: 대화 준비 / 대화 / 설정)"
+      - "pain!Pain Point 목록 No.11·34·83"
+      - "사용자 교육_마바손해보험 vision#PAGE 2 (설계매니저 편의 기능)"
+
+  - id: cap.substitute_assignee
+    name: 대직자 지정·대화방 이관
+    definition: 휴가·부재·이직 시 대직자를 지정하거나 대화방 담당을 다른 사람에게 넘겨 맥락을 잇는다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.absence_coverage]
+    evidence_hint:
+      - "사용자 교육_마바손해보험 vision#PAGE 2 ⑤ (휴가 및 부재중 대직자 지정)·PAGE 7 (대직자 설정·대화방 이관이 정식 교육 항목)"
+      - "오로라웍스 사용자 매뉴얼 (PC, 협업센터) v2.1.pptx#SLIDE 11 ('대직자 방 보기' — 협업센터에만 있는 필터)"
+      - "pain!Pain Point 목록 No.30·31·32"
+      - "기능맵!v2.1 상세분류 '대화 관리'"
+
+  - id: cap.assignment_rules
+    name: 배분룰·배분 상태 운영
+    definition: 대화를 누구에게 어떤 순서로 배분할지 규칙으로 정하고, 담당자의 배분 상태(배분중/부재중/배분중지)를 관리한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.absence_coverage, need.request_tracking_absent]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 46 (배분룰 5종과 기본 On/Off: 전담자 Off / 전담팀 On / 이전 사용자 Off / 토픽 On / 센터 On)"
+      - "오로라웍스 사용자 매뉴얼 (PC, 상담센터) v2.1.pptx#SLIDE 7 (배분 상태 3종 + '최대' 선택 시 500개)"
+      - "기능맵!v2.1 상세분류 '배분'·'배분 상태 설정'"
+      - "기능맵!v2.1 화면 '통합배분 (UQ)' 데이터행 11"
+
+  - id: cap.task_management
+    name: 할 일(Task) 생성·조회·분석
+    definition: 메시지에서 바로 할 일을 만들고 기한·담당자로 관리하며 처리 지표를 리포트로 본다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.request_tracking_absent]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 37~38 (메시지 버블 기반 할 일 생성, #TASK-n, 기한·요청자·담당자·연결 대화방)"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 39 (할 일 분석 리포트: KPI 위반, 대기/처리/배분 대기시간 Top5)"
+      - "기능맵!v2.1 영역 '할 일' (상세분류: 할 일 목록·할 일 관리·할일 상세)"
+      - "pain!Pain Point 목록 No.19·77"
+
+  - id: cap.knowledge_base
+    name: 지식(Knowledge) 등록·검색·전송
+    definition: 자주 쓰는 안내와 자료를 지식으로 등록해 대화 중에 검색해서 바로 보낸다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.repetitive_answer_effort]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 23 (지식 등록·검색·전송, '/' + 검색어, '?' + 코드)"
+      - "기능맵!v2.1 영역 '지식' (개인 지식·공용 지식·지식 검색·즐겨찾기)"
+      - "pain!Pain Point 목록 No.41·67"
+
+  - id: cap.faq
+    name: FAQ / 대화형 FAQ
+    definition: 고객·외부 사용자가 스스로 답을 찾도록 FAQ 를 운영하고 대화 안에서도 제공한다.
+    addon: true
+    license_gated: false
+    addresses_needs: [need.repetitive_answer_effort]
+    evidence_hint:
+      - "기능맵!v2.1 화면 'FAQ' 데이터행 41 (영역: [Guest Zone] FAQ / [Workspace] 대화하기 / FAQ 이력 조회 / FAQ / FAQ 대시보드 / FAQ 리포트 / 설정)"
+      - "오로라웍스 사용자 매뉴얼 (PC, 상담센터) v2.1.pptx#SLIDE 2 Contents (Add on Feature)"
+      - "채권추심 BM Open Book.pdf#PAGE 7"
+      - "pain!Pain Point 목록 No.60 (게시판(정보공유) 페이지)"
+
+  - id: cap.ai_summary
+    name: AI 대화 요약
+    definition: 통화·대화 전체, 안 읽은 부분, 지정 구간을 AI 가 요약해 준다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.absence_coverage, need.conversation_record_not_asset]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 20 (AI 통화 요약, 안 읽은 대화 요약, 입장 시 이전 대화 전체 요약)"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 21 (구간 선택 요약)"
+      - "기능맵!v2.1 기능명 'AI 대화 요약'"
+
+  - id: cap.ai_answer_recommend
+    name: AI 답변 추천·문장 교정
+    definition: 지식을 근거로 답변을 추천하고 오탈자·문법을 교정한다.
+    addon: true
+    license_gated: false
+    addresses_needs: [need.repetitive_answer_effort]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 22 (지식 기반 답변 추천 / 문장 교정)"
+      - "기능맵!v2.1 화면 'AI Assistant' 데이터행 13"
+      - "오로라웍스 사용자 매뉴얼 (PC, 상담센터) v2.1.pptx#SLIDE 2 Contents (Add on Feature 6종 중 AI Assistant)"
+
+  - id: cap.ai_ocr_ner
+    name: AI OCR·NER 고객정보 자동 추출
+    definition: 서류·이미지에 적힌 고객 정보를 인식해 시스템에 자동으로 채운다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.manual_data_entry]
+    evidence_hint:
+      - "(최종)...바다손해보험....html#제안방안 02"
+      - "pain!Pain Point 목록 No.20 (고객정보 추출 OCR/NER, 마바손해보험)"
+      - "[사아캐피탈]...추진안.docx#8 (AI OCR 인식 한계 … 사전 처리·튜닝으로 90% 이상 확보)"
+      - "BD Overview!진척도!H3 파트너 '파트너A'(OCR 업체)"
+
+  - id: cap.ai_qa_scorecard
+    name: AI QA 스코어카드·컴플라이언스 자동 점검
+    definition: 전화·채팅 대화를 AI 가 전수 검사해 규정 위반을 찾아 점수와 리포트로 낸다.
+    addon: true
+    license_gated: true
+    addresses_needs: [need.regulatory_contact_limit, need.metrics_visibility]
+    evidence_hint:
+      - "AI QA 데모 시나리오.pdf#PAGE 1 (마루캐피탈 / 전화 또는 채팅의 대화 내역을 AI 기반으로 전수 검사)"
+      - "AI QA 데모 시나리오.pdf#PAGE 1 (설정 경로: 실험실 > QA평가관리 > QA센터 관리)"
+      - "기능맵!v2.1 화면 '품질 평가' 데이터행 11"
+      - "오로라웍스 사용자 매뉴얼 (PC, 상담센터) v2.1.pptx (품질평가도 라이선스로 관리됩니다 / 품질평가 권한 필요 — 라이선스+권한 2중 게이트)"
+
+  - id: cap.scenario_bot
+    name: 시나리오 봇
+    definition: 본인인증·안내·납부 같은 반복 업무를 봇이 24시간 처리하고 필요 시 사람에게 넘긴다.
+    addon: true
+    license_gated: false
+    addresses_needs:
+      [need.repetitive_answer_effort, need.regulatory_contact_limit]
+    evidence_hint:
+      - "채권추심 BM Open Book.pdf#PAGE 3 ('24/365 시나리오 봇으로 반복성 업무 처리(납부안내, 분할납부, 상환일연기 등)')"
+      - "채권추심 BM Open Book.pdf#PAGE 6, 14 (본인인증·미납요금 안내·납부방법 안내·상담사 연결)"
+      - "기능맵!v2.1 화면 '시나리오 봇' 데이터행 2 (상세분류: 봇 연동·봇 현황)"
+
+  - id: cap.legacy_integration
+    name: 기간계·조직도·SSO 연동
+    definition: 사내 기간계 시스템, 조직도, 인증과 연결해 담당자 매핑과 데이터 적재를 자동화한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.legacy_system_integration]
+    evidence_hint:
+      - "app/aurorasuite-portal/.../deployment_guide/talkcore/deployment-talkcore-member-transfer.adoc:23-24 (app.member.sync.transfer.enabled 기본값 true — 조직도 연동 시 즉시 삭제하지 않고 관리자 인수인계 대기)"
+      - "app/aurorasuite-portal/.../deployment_guide/talkcore/deployment-talkcore-customer-history.adoc:4-5 (loginId·messengerId·authId 중 설정 가능, 미설정 시 loginId or messengerId)"
+      - "기능맵!v2.1 상세분류 '조직 동기화 연동'·'조직도 연동'·'전담자 연동'"
+      - "pain!Pain Point 목록 No.61·63·82"
+      - "[자차캐피탈]...docx === [TABLE 2] === ④ / 마바캐피탈#PAGE 14"
+
+  - id: cap.statistics_report
+    name: 통계·대시보드·성과 리포트
+    definition: 대화·티켓·사용자·센터 지표를 대시보드와 리포트로 보여 주고 내려받게 한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.metrics_visibility, need.request_tracking_absent]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 40~41 (Talk 대시보드 / 센터 리포트·사용자 리포트)"
+      - "기능맵!v2.1 영역 '대시보드'·'통계 리포트' (상세분류 8종: 상담 대화 현황·협업 리포트·내부 사용자 리포트·센터 리포트·토픽 리포트·비즈폼 리포트·통계 다운로드 등)"
+      - "(최종)...바다손해보험....html#제안방안 05 (초대 496 / 참여 296 / 활동 245 / 참여율 59% / 활동율 49% / 전체 대화 6,384)"
+
+  - id: cap.multi_center
+    name: 멀티센터·센터그룹 운영
+    definition: 서로 다른 업무를 독립된 센터로 나눠 각각의 운영 정책으로 굴리고 계층으로 묶는다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.admin_org_control]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 25 ('서로 다른 업무를 독립적으로 운영 가능한 멀티센터 / 센터 단위로 운영정책 적용')"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 44~45 (설정 > 센터 / 센터그룹 계층형)"
+      - "공적내용양식 (다라카드).docx ('기존 최대 9개 도메인 한계 → 10개 이상 도메인 확장이 가능한 구조로 개선')"
+      - "보험설계지원 업무 도메인의 타부서 확장.pdf#PAGE 7 (S사 5개 센터 통합 운영 — 멀티 도메인 활용)"
+    scope_warning: >-
+      '센터 기반 데이터 격리'는 이 Capability 이고, '구독 사업을 위한 멀티테넌트(유저 라이선스 구조 포함)'는 별개다.
+      하늘IT 검토 문서는 후자를 "개발 필요"로 적는다. 두 개를 한 Capability 로 합치면 GQ-D6 이 틀린 답을 낸다.
+
+  - id: cap.role_permission
+    name: 역할·권한 조합 관리
+    definition: 화면 권한과 사용 권한을 조합해 새 직무가 생겨도 역할을 만들어 통제한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.admin_org_control]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 27, 51 ('유연한 역할·권한 — 화면 권한 + 사용 권한 조합, 새로운 직무가 생겨도 언제든 손쉽게 구현')"
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 27 (고객 역할 사례: S사 '700개 전 센터 권한 보유한 본사지원팀', H사 'VTM/STM 매니저')"
+      - "기능맵!v2.1 상세분류 '사용자 역할'"
+      - "pain!Pain Point 목록 No.33 (슈퍼관리자·역할권한·조직관리)"
+
+  - id: cap.system_security_policy
+    name: 시스템 보안 정책(접속·계정)
+    definition: 접속 가능 IP, 비밀번호 규칙과 변경 주기, 자동 로그아웃, 계정 잠금, 중복 로그인을 정책으로 강제한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.pii_masking_compliance]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 57 (접속가능IP·비밀번호 규칙·변경주기·자동 로그아웃·계정 잠금·중복 로그인)"
+      - "기능맵!v2.1 상세분류 '보안'·'시스템 관리'"
+      - "pain!Pain Point 목록 No.25 (사용자 보안규칙·키보드 보안)·No.87 (로그인 2차 인증 생체)"
+    caution: "제품소개서 p25 와 p57 의 같은 항목 값이 어긋난다('20 회 입력 초과 시 계정 잠금' vs '20 일 미 접속시 계정 잠금', '최소 9자' vs '최소 1자리'). 제품 spec 으로 인용하면 안 되는 값이다."
+
+  - id: cap.deployment_options
+    name: 도입 방식 선택(On-premise / Public / Private Cloud)
+    definition: 고객 환경에 맞춰 설치형과 클라우드 중에서 고를 수 있게 한다.
+    addon: false
+    license_gated: false
+    addresses_needs: [need.closed_network_performance]
+    evidence_hint:
+      - "오로라 스위트_오로라웍스_제품소개서 vision#PAGE 26 (On-premise / Public Cloud / Private Cloud)"
+      - "[자차캐피탈]...docx === [TABLE 5] === (오로라웍스 만 '지원구축 형태 = On-premise / On-demand', 나머지 4종은 유사구축 사례 '없음')"
+      - "pain!Pain Point 목록 No.64 (VDI/방화벽 등 고객망 대응)"
+
+  - id: cap.translation
+    name: 외국어 대화 지원(번역)
+    definition: 대화를 자동 번역해 서로 다른 언어를 쓰는 사람이 소통하게 한다.
+    addon: true
+    license_gated: true
+    addresses_needs: []
+    evidence_hint:
+      - "app/aurorasuite-portal/.../deployment_guide/talkcore/deployment-talkcore-translation.adoc:8 ('1. *외국어 대화 지원* 라이선스 발급')"
+      - "app/aurorasuite-portal/.../deployment_guide/talkcore/deployment-talkcore-translation.adoc:35 ('제품 기본으로 적용한 구글 클라우는 번역 버전은 Basic v2 입니다.' — 원문 오탈자 그대로)"
+    note: >-
+      addresses_needs 가 비어 있다. 실측한 고객 Pain 92개·95행 어디에도 번역 요구가 없다.
+      라이선스 게이팅 사실이 딜 협상 근거로 직접 쓰이므로 Capability 로는 넣되, Need 연결은 근거가 생길 때 만든다.
+
+  - id: cap.download_approval
+    name: 다운로드 승인
+    definition: 파일 다운로드를 요청·승인 절차로 통제하고 이력을 남긴다.
+    addon: true
+    license_gated: false
+    addresses_needs: [need.pii_masking_compliance, need.admin_org_control]
+    evidence_hint:
+      - "기능맵!v2.1 화면 '다운로드 승인' 데이터행 13 (영역: [Workspace] 티켓조회 / 다운로드 승인 관리 / 설정)"
+      - "오로라웍스 사용자 매뉴얼 (PC, 상담센터) v2.1.pptx#SLIDE 2 Contents / (PC, 협업센터) v2.1.pptx#SLIDE 2 (협업센터의 유일한 Add-on)"
+
+# --------------------------------------------------------------------------
+# 의도적으로 Capability 로 만들지 않은 것 (Gap 판정을 위해 중요)
+# --------------------------------------------------------------------------
+deliberately_absent:
+  - name: 구독 사업용 멀티테넌트(유저 라이선스 구조 포함)
+    reason: >-
+      하늘IT 협업 관련 검토 사항.pdf#PAGE 2 가 "멀티테넌트 구조 개발 필요 … 유저 라이선스 구조 등 고려하면 범위가 작진 않음"
+      이라고 적는다. 보유 Capability 가 아니라 미보유 전제다.
+      오로라웍스 온보딩.html 은 제품을 "엔터프라이즈 멀티테넌시 애플리케이션 · 센터 기반 데이터 격리"라고 소개하므로
+      단순 키워드 검색이면 "이미 지원한다"는 잘못된 답이 나온다. GQ-D6 이 이 구분을 시험한다.
+      두 문장의 대상이 다르다: 센터 기반 데이터 격리(보유, cap.multi_center) ≠ 구독형 멀티테넌트(미보유).
+    gap_verdict_expected: CONFIRMED
+    gap_basis_evidence: "하늘IT 협업 관련 검토 사항.pdf#PAGE 2 고려사항 블록"
+  - name: AG 영업 성과 평가 자동화
+    reason: >-
+      자동차금융 Open Book.pdf#PAGE 8~9 가 "핵심 목적이 아닌 것"으로 명시한다(고객 마케팅 ✗, 상품 비교 ✗, AG 평가 ✗).
+      단 "기술적으로는 가능합니다"라고 덧붙인다. CONFIRMED GAP 이 아니라 '의도적 비범위'로 구분해야 한다.
+    gap_verdict_expected: UNKNOWN
+    gap_basis_flag: out_of_scope_by_design
+  - name: 오로라웍스 메일 구축 레퍼런스
+    reason: >-
+      B2B 메일(퇴직연금 대상) 소개서.pptx#SLIDE 17 이 "동일한 형태의 구축 레퍼런스는 아직 준비 중입니다" 라고 스스로 밝힌다.
+      Capability(cap 로는 미등재) 자체는 제안 중이지만 레퍼런스가 없다는 사실이 명시적 근거로 존재한다.
+    gap_verdict_expected: CONFIRMED
+
+taxonomy_governance:
+  who_updates: 사람만
+  llm_role: "기존 항목으로의 매핑 후보 제안까지만. 신규 canonical 항목 생성 금지."
+  granularity_guard: >-
+    기능맵의 393개 기능명을 그대로 Capability 로 올리지 않는다. Feature-IMPLEMENTS->Capability 로 연결한다.

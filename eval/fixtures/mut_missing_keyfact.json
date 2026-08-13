@@ -1,0 +1,131 @@
+{
+  "question_id": "GQ-A2",
+  "answer": {
+    "answer": {
+      "text": "제공되지 않습니다. 마바손해보험이 요청한 모바일 PDF 다운로드는 보안 정책상 제한으로 처리되었습니다[1][2]."
+    },
+    "citations": [
+      {
+        "marker": 1,
+        "evidence_id": "ev_pain_block_r13_result",
+        "quoted_span": "보안 정책상 제한"
+      },
+      {
+        "marker": 2,
+        "evidence_id": "ev_pain_block_r13_guide",
+        "quoted_span": "PDF 뷰어 기능은 개발 검토 중"
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "ev_pain_block_r13_result",
+        "source_id": "src_pain_registry",
+        "locator": "대응 불가·제약!r13",
+        "snippet": "구조·정책 상충 | 모바일 PDF 다운로드 | 마바손해보험 | 보안 정책상 제한",
+        "authority_label": {
+          "tier": "T2",
+          "claim_domain": "product_behavior",
+          "source_type": "pain_registry",
+          "policy_version": "1.0.0",
+          "source_of_record_for": "명시적 기능 부재와 그 사유"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      },
+      {
+        "evidence_id": "ev_pain_block_r13_guide",
+        "source_id": "src_pain_registry",
+        "locator": "대응 불가·제약!F13",
+        "snippet": "개인정보 보호를 위한 보안 정책상 제한이며 고객 정보보호팀도 다운로드 불가 의견. PC와 동일한 PDF 뷰어 기능은 개발 검토 중 — 신규 고객에는 보안 원칙과 뷰어 대안으로 안내",
+        "authority_label": {
+          "tier": "T2",
+          "claim_domain": "product_behavior",
+          "source_type": "pain_registry",
+          "policy_version": "1.0.0"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      }
+    ],
+    "evidence_strength": {
+      "band": "HIGH",
+      "basis": {
+        "independent_evidence": 1,
+        "highest_authority": "pain_registry",
+        "contradiction": "none",
+        "recency": "current"
+      }
+    },
+    "unknowns": [],
+    "gaps": [
+      {
+        "subject": "모바일 PDF 다운로드",
+        "verdict": "CONFIRMED",
+        "basis": {
+          "reason": "요구 항목이 대응 불가·제약 목록에 올라 있고 처리 결과가 제한으로 확정되어 있습니다.",
+          "explicit_absence_evidence_ids": [
+            "ev_pain_block_r13_result"
+          ],
+          "need_evidence_ids": [
+            "ev_pain_block_r13_guide"
+          ],
+          "out_of_scope_by_design": false
+        }
+      }
+    ],
+    "subgraph": {
+      "nodes": [
+        {
+          "id": "acct_hana_nonlife",
+          "labels": [
+            "Account"
+          ],
+          "label_text": "마바손해보험",
+          "rank": "focal",
+          "status": null,
+          "citation_markers": [
+            1
+          ]
+        },
+        {
+          "id": "need_mobile_pdf",
+          "labels": [
+            "Need"
+          ],
+          "label_text": "모바일에서 PDF 문서를 내려받아 확인",
+          "rank": "cited",
+          "status": "CANDIDATE",
+          "citation_markers": [
+            1,
+            2
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "acct_hana_nonlife",
+          "to": "need_mobile_pdf",
+          "type": "HAS_NEED",
+          "claim_ids": [
+            "clm_hana_mobile_pdf"
+          ],
+          "status": "CANDIDATE",
+          "cited": true
+        }
+      ],
+      "truncated": false
+    },
+    "route": {
+      "retriever": "Q-E",
+      "matched_rule": "entity_lookup:Account+Need",
+      "llm_classifier_used": false,
+      "claim_domain": "product_behavior"
+    },
+    "notices": {
+      "results_may_be_incomplete": false,
+      "critical_unverified_included": false,
+      "raw_signal_count": 0
+    }
+  },
+  "_about": "정상 GQ-A2 에서 '뷰어 기능은 개발 검토 중' 문장을 지웠다. keyfact 만 깨져야 한다."
+}

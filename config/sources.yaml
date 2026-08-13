@@ -1,0 +1,1304 @@
+# 1A Source 등록 목록 (A4 Source 등록 CLI 입력값)
+#
+# Gate 1A 항목 1 이 요구하는 Source 6종을 전부 커버한다:
+#   featuremap · sales_xlsx · bd_registry · documents · slack · repo_seed
+# 여기에 pain_registry 1종을 추가했다(아래 source_groups.additional 의 사유 참조).
+#
+# 등록 규칙 (REVISED §4 ①)
+#   visibility·sensitivity·pii_flag·source_type 은 필수 입력이고 deny-by-default 다.
+#   path 는 반드시 **원본 파일**을 가리킨다(추출 txt 가 아니다 — provenance 오염 방지).
+#   예외는 이미지 PDF 3건뿐이며 extractor: vision + transcript_path 로 명시한다.
+#
+# source_of_record_for 는 §4 ⑥ (2) VERIFIED 판정의 근거다. 값의 정의는 contracts/source_type.enum.json 참조.
+#
+# 범위 (DECISIONS A-10, 2026-08-08)
+#   의뢰 원문은 "`data/sources/wiki` 의 모든 문서, Slack 4채널, auroraworks 레포 자체
+#   (특히 docs·portal)" 였다. 초판이 골든 기여도·중복·파싱 노이즈를 이유로 15개를 뺐던 것을 되돌려
+#   wiki 31개 파일 전부를 넣는다. 중복·노이즈는 제외 사유가 아니라 dedup 과 발췌 품질로 다룬다.
+#   PII 미검증 자료는 빼는 대신 sensitivity=restricted 로 넣어 데모 응답에서 필터한다.
+#   파일 수가 많은 레포 문서는 아래 `source_bundles` 에 glob 으로 등록한다(전개 규칙은
+#   ingestion/source_registry.py). 번들이 훑은 경로가 `sources` 에 이미 있으면 개별 등록이 이긴다.
+
+version: "1.1.0"
+base_dirs:
+  wiki: data/sources/wiki
+  repo: data/sources/product-repo
+  bwm: .
+
+source_groups:
+  required_6:
+    - featuremap
+    - sales_xlsx
+    - bd_registry
+    - documents
+    - slack
+    - repo_seed
+  additional:
+    - id: pain_registry
+      reason: >-
+        REVISED §4 의 파서 6종 목록에는 없지만, `고객사 Pain Point·구축 대응 통합 관리.xlsx` 는
+        need-taxonomy·capability-taxonomy 의 유일한 실물 근거(95행 Pain 원문 + 대응 불가 12건)이고
+        GQ-D3·GQ-D4 의 직접 근거다. 빼면 Need canonical 항목 20개 중 대부분이 근거를 잃는다.
+        파서는 새로 만들지 않고 A2-c 의 flat-table xlsx 파서를 재사용한다(병합 0개, 헤더 r1 한 줄).
+      needs_human_confirm: true
+      confirm_reason: "Gate 1A 문구가 'Source 6종'이라 7종이 되는 것이 게이트 판정에 영향을 주는지 사람이 확인해야 한다."
+
+sources:
+  # ======================================================================
+  # 1. featuremap — 제품 기능의 정본
+  # ======================================================================
+  - id: src_featuremap_v21
+    source_group: featuremap
+    path: data/sources/wiki/오로라웍스 기능맵 v2.1.xlsx
+    format: xlsx
+    source_type: release_spec
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-a xlsx_featuremap
+    scope:
+      sheets_include: [v2.1, 문서정보]
+      sheets_exclude: [표지, v2.0, v1.0]
+      exclude_reason: >-
+        표지는 0x0 빈 시트다. v2.0·v1.0 은 v2.1 의 버전 컬럼이 이미 이력을 담고 있고,
+        기능명 리네이밍 때문에 시트 집합 비교가 57~69% 밖에 안 맞아 오히려 틀린 결론을 만든다.
+        (v2.1 에서 2.0.0=O 인 기능 352개 중 v2.0 시트에 실재하는 것은 201개뿐)
+      data_rows: 470
+      unique_feature_names: 393
+    source_of_record_for: 제품 기능의 존재·이름·화면 소속·LiveTalk/GroupTalk 지원 여부·도입 버전(introduced_in)
+    origin: "홍길동 (전략사업본부 검토), 최종작성일 2026-08-05"
+    doc_status: approved
+    parser_notes:
+      - "헤더는 r3 한 줄(v2.0/v1.0 과 달리 2줄 헤더가 아니다). 데이터 r4~r519."
+      - "세로 병합 ffill 대상은 B(화면)·C(영역)·D(상세분류) 세 개뿐. E·F·G~M 은 ffill 금지."
+      - "G·H 체크 표기가 2벌: 'V'(로마자) 와 '√'(U+221A). 하나로 정규화."
+      - "미포함 표시도 2벌: '.'(점) 과 빈칸."
+      - "기능명 없이 설명만 있는 행 16개는 직전 Feature 에 병합한다(별도 노드로 만들면 이름 없는 노드 16개)."
+      - "introduced_in = I~L 중 왼쪽부터 처음 'O' 가 나오는 컬럼."
+    golden_link: [GQ-D8, GQ-D5]
+
+  # ======================================================================
+  # 2. sales_xlsx — 딜 사실의 정본
+  # ======================================================================
+  - id: src_sales_activity_log
+    source_group: sales_xlsx
+    path: data/sources/wiki/영업본부_방문 및 접촉 활동 일지.xlsx
+    format: xlsx
+    source_type: sales_activity_log
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    extractor: deterministic
+    parser: A2-b xlsx_sales_activity (스키마 4벌 분기)
+    scope:
+      sheets_include:
+        - 홍길동
+        - 김철수
+        - 이영희
+        - 박민수
+        - 7월13일~16일
+        - 7월6일~10일
+        - 일일보고(6월 30일)
+        - 일일보고(7월 1일(수))
+      sheets_note: >-
+        일일보고 14장 중 최신 2장만 넣는다. 인접 시트 셀값이 68~91% 동일한 누적 스냅샷이라
+        전부 넣으면 같은 딜(가나손해보험 2.85억 등)이 14번 반복된다.
+      sheets_exclude: []
+      forecast_note: >-
+        매출전망 시트도 넣는다(A-10). 축이 딜이 아니라 회사 매출 집계라 서브파서가 따로 읽는다.
+        금액은 자릿수 구분을 넣어 적는다 — 8자리 이상 연속 숫자가 전화번호 정규식에 걸려
+        마스킹 게이트를 빨간불로 만들기 때문이다(실측 4건).
+      data_rows: "사람별 118 + 날짜별 70 + 일일보고 섹션 5·6 + 매출전망 22"
+    source_of_record_for: 딜 단계·예상매출·성공확률·현재 이슈·Next Action·지원 필요 사항 + 접촉 이벤트
+    doc_status: approved
+    pii_locations:
+      - "7월6일~10일!I (연락처) 43셀"
+      - "7월13일~16일!I (연락처) 15셀"
+      - "일일보고 9개 시트!H (6.전략BD 연락처) 12셀"
+      - "7월*!H(고객사 담당자)·일일보고!G(담당자) — 실명+직급, 정규식 미대상"
+    parser_notes:
+      - "⚠️ 21시트 중 19시트가 hidden 이다. sheet_state != 'visible' 을 건너뛰면 핵심 데이터를 전부 잃는다. GQ-D1 근거가 hidden 시트 안에만 있다."
+      - "한 파일 = 한 스키마가 아니다. 사람별 / 날짜별 / 일일보고 / 매출전망 4벌."
+      - "사람별 헤더는 r7 한 줄(r7:r8 세로 병합이라 2줄처럼 보이지만 r8 은 전부 공백). 데이터 r9~."
+      - "사람별 ffill 대상 = C(영업대표)·D(업권)·F(고객사). 날짜별 ffill = B(일자)·C(담당자)·D(고객사)."
+      - "일일보고 5번 섹션 Next Action 컬럼이 시트마다 M/N 으로 이동한다. 섹션 헤더 행에서 컬럼 위치를 매번 다시 읽는다."
+      - "7월1일(수) 시트는 5·6 섹션 헤더만 있고 데이터 0행이다."
+      - "복붙 dedup: 값 변화 시점만 Observation 으로 남긴다."
+      - "날짜에 문자열 이상값 3건('-' 2건, '2026. 05 28' 1건). Excel serial 정수는 전 파일 0건."
+      - "'타켓고객'(오타) 21회, 예상매출 단위 미통일 — 원문 보존 필수."
+    golden_link: [GQ-D1, GQ-D3]
+
+  - id: src_sales_weekly_plan
+    source_group: sales_xlsx
+    path: data/sources/wiki/영업본부_주간활동계획.xlsx
+    format: xlsx
+    source_type: sales_weekly_plan
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    extractor: deterministic
+    parser: A2-b xlsx_weekly_plan
+    scope:
+      sheets_include: [홍길동, 김철수, 이영희]
+      sheets_exclude: [박민수]
+      exclude_reason: "hidden 2블록, 68행, 전화번호 0건, 5.·6. 표가 거의 비어 있다."
+      blocks: 최신 1개 주차 블록만
+      blocks_reason: "사람당 최대 11블록이 반복이다. 전체를 넣으면 같은 고객사가 10회 이상 중복된다."
+      tables_include:
+        [
+          "5. 사업실행협의 이상 고객사",
+          "6. 핵심관리 고객사 리스트 및 제안전략(TOP5)",
+        ]
+    source_of_record_for: 주차 단위 영업 계획과 핵심관리 고객사 목록(고객사·업무도메인·금액·현재 단계)
+    doc_status: approved
+    pii_locations:
+      [
+        "H열(연락처) 27셀 — 홍길동 14 · 김철수 8 · 이영희 5",
+        "G열(고객사 담당자) 실명+직급",
+      ]
+    parser_notes:
+      - "⚠️ 날짜 표 헤더가 7종 변형이다. 같은 G열이 어떤 주차에서는 '중요도', 다른 주차에서는 '고객사 담당자'다. 컬럼 위치 상수화 금지."
+      - "블록 앵커 '금주주간활동(<이름>)' 이 B열과 C열을 오간다. B열만 스캔하면 11블록 중 2개만 잡힌다(실측)."
+      - "가로 병합이 다수(B201:E201, L347:Q347). 방향 구분 없이 ffill 하면 서술 텍스트가 옆 컬럼으로 번진다."
+      - "5.·6. 표만 헤더 변형이 없어 안정적이다."
+      - "'사업기회 발굴'/'사업기회발굴'/'기회발굴' 3벌, '방문미팅'/'방문 미팅' 2벌 — 정규화 없이 집계하면 틀린다."
+
+  # ======================================================================
+  # 3. bd_registry — BusinessDomain 의 정본
+  # ======================================================================
+  - id: src_bd_overview
+    source_group: bd_registry
+    path: data/sources/wiki/BD Overview.xlsx
+    format: xlsx
+    source_type: bd_registry
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-c xlsx_bd_registry
+    scope:
+      sheets_include:
+        [BM 정의, 시장사이즈, 진척도, 기대효과, 전략매출, Guest통제, 멀티BM]
+      sheets_note: 7시트 전부 소화한다(A2 AC).
+    source_of_record_for: BusinessDomain 의 산업 구분·타겟기업·BR/Guest·업무·성숙도 5축·채널 유형·Guest 통제·bd_status·파트너
+    doc_status: approved
+    parser_notes:
+      - "BM 정의: 헤더 r2, 데이터 r3~r19. ffill 대상 B(산업)·C(BD)·D(타겟기업). F열은 '<->' 기호 전용이라 무시."
+      - "퇴직연금(C7:C9)·신용평가(C12:C13)는 BR/Guest/업무가 다중행이다."
+      - "시장사이즈: B열에 헤더 라벨이 없다(빈 셀). 시장 사이즈 값은 '80억 ~ 100억\\n(4억 기준)' 형태 문자열이며 숫자가 아니다."
+      - "진척도: 값 enum ✔ / 제외 / 공백. 범례 r20·r21 이 같은 '✔' 에 '완료'와 '보완필요' 두 라벨을 달아 값만으로 구분 불가(색상 구분 추정, data_only 로는 미확인)."
+      - "기대효과: ⚠️ 가로 3블록(B=관리 BM / I=후보 BM / P=제외 BM). 단순 행 순회로는 후보·제외 BM 을 못 읽는다. bd_status 의 정본이 이 시트다."
+      - "전략매출·Guest통제·멀티BM: 표가 아니라 B열·C열의 문장 2~3줄이다. 콜론 뒤 쉼표 분리 파싱이 필요하다."
+      - "각주 r20(시장사이즈)·r25(진척도)·r21(기대효과)가 신·구 명칭 2벌 문제의 근거 원문이다. 반드시 Evidence 로 보존한다."
+      - "날짜 0셀 · PII 0건."
+    seed_output: config/bd-seed.yaml
+    golden_link: [GQ-D2, GQ-D3, GQ-D5]
+
+  # ======================================================================
+  # 4. pain_registry — Need/Capability taxonomy 의 유일한 실물 근거
+  # ======================================================================
+  - id: src_pain_registry
+    source_group: pain_registry
+    path: data/sources/wiki/고객사 Pain Point·구축 대응 통합 관리.xlsx
+    format: xlsx
+    source_type: pain_registry
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-c xlsx_flat_table (재사용)
+    scope:
+      sheets_include:
+        [
+          Pain Point 목록,
+          대응 불가·제약,
+          오픈 후 운영 불편,
+          대응 시나리오,
+          구축 체크포인트,
+          요약,
+        ]
+      sheets_note: >-
+        6시트 전부(A-10). 초판은 요약·대응 시나리오·구축 체크포인트를 뺐으나, 대응 시나리오 7건과
+        구축 체크포인트 21건은 "고객 요구가 오면 무엇을 근거로 어떻게 대응하는가"의 유일한 기록이고
+        Pain Point 목록 행 번호를 직접 인용해 Evidence 링크로 이어진다.
+      data_rows: "95 + 12 + 12 + 7 + 21 + 요약 블록"
+    source_of_record_for: 구축 고객 4사의 도입 전 Pain 원문·대응 기능·제공구분, 명시적 기능 부재 12건과 그 사유, 그리고 고객 요구 유형별 대응 순서와 구축 단계 체크 항목
+    doc_status: approved
+    parser_notes:
+      - "병합 0개 — 8종 xlsx 중 유일하게 ffill 이 전혀 필요 없다. 헤더는 전부 r1 한 줄."
+      - "고객사 enum 4종: 마바손해보험 34 · 사아캐피탈 31 · 카파전선 15 · 타하렌터카 15 = 95."
+      - "분류 enum 10종이 need-taxonomy 의 1차 골격 후보다."
+      - "제공구분에 '+' 결합 복합값 2종이 있다('제품개발 + 커스텀', '제품기본 + 커스텀'). 구축 체크포인트 시트는 '제품기본·커스텀 2종으로만 구분해 합의'라고 적어 시트 간 정의가 어긋난다(conflict 후보)."
+      - "'대응 불가·제약'의 발생 고객사는 '·' 결합 복합값('카파전선·마바손해보험'). 분해 필요."
+      - "'오픈 후 운영 불편' 출처 열이 'Pain Point 목록 75번 연계' 처럼 다른 시트 행 번호를 직접 인용한다. Evidence 링크에 그대로 쓸 수 있다."
+      - "날짜 0셀 · PII 0건 · 복붙 블록 없음."
+    seed_output: [config/need-taxonomy.yaml, config/capability-taxonomy.yaml]
+    golden_link: [GQ-D3, GQ-D4]
+
+  # ======================================================================
+  # 5. documents — 제안서·Open Book·내부 자료 12종
+  # ======================================================================
+  - id: src_doc_haneul_it_memo
+    source_group: documents
+    path: data/sources/wiki/하늘IT 협업 관련 검토 사항.pdf
+    format: pdf
+    source_type: internal_memo
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: false
+    pii_note: "정규식 매칭 0건이지만 p2 에 실명 '홍길동님' 이 있다. 그래서 restricted 다."
+    extractor: deterministic
+    parser: A2-d doc_pdf (pdftotext -layout)
+    locator_marker: "=== [PAGE n] ==="
+    pages: 4
+    chars: 2450
+    source_of_record_for: 하늘IT 협업의 현재 진행 상태·의사결정 안건·미해결 전제(멀티테넌트 개발 필요, 수익 배분 미정, AWS 비용 공동 지불 미협의)
+    priority: 1
+    priority_reason: "GQ-D6 전용. 4쪽·2,450자로 저비용이고 rare-critical 실증에 필수다."
+    parser_notes:
+      ["문서 자체 절 번호가 1·2·3·5·6·7·8 로 4번이 빠져 있다(원문 그대로)."]
+    golden_link: [GQ-D6]
+
+  - id: src_doc_product_brochure
+    source_group: documents
+    path: data/sources/wiki/오로라웍스_제품소개서.pdf
+    format: pdf
+    source_type: product_brochure
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "pdftotext 기준 정규식 0건이지만 vision 판독본 p15 에 '홍길동 / 010-2345-6789 / hong.gildong@gamil.com', p63 에 '02-123-4567' 가 실재한다. 텍스트를 못 뽑아 0으로 나온 것이지 PII 가 없는 게 아니다."
+    extractor: vision
+    transcript_path: ./data/raw_probe/text/오로라웍스_제품소개서.pdf.vision.txt
+    extraction_method: vision_transcription
+    transcribed_at: "2026-08-07"
+    parser: A2-d doc_vision_transcript
+    locator_marker: "===== PAGE n ====="
+    pages: 63
+    source_of_record_for: 제품 Capability 목록·도입 방식 3종·배분룰 5종·예약 키워드 6종·첨부 정책
+    exception_reason: >-
+      A2 는 '추출 txt 가 아니라 원본 파일을 파싱한다'를 못박고 있으나, 이 PDF 는 이미지 슬라이드라
+      pdftotext 로 페이지당 7.0자밖에 안 나온다(전체 1,067자). 원본 파싱으로는 물리적으로 텍스트를 얻을 수 없다.
+      그래서 명시적 예외로 두고 extractor: vision 과 transcript_path 를 남긴다.
+      Evidence 에는 '사람/모델 판독본' 라벨을 붙인다.
+    transcription_guard: "판독본에 [판독불가]·[판독주의] 표기가 다수 있다. 그 구간은 숫자·고유명사 추출 대상에서 제외한다."
+    known_internal_conflict: "PAGE 63 좌측 '비즈니스 업력 27년(1999.03~)' 과 우측 지표 '비즈니스 기간 25년' 이 같은 쪽에서 어긋난다. §C-1 의 유일한 관측 지점."
+    golden_link: [GQ-D5, GQ-D7]
+
+  - id: src_doc_qna_deck
+    source_group: documents
+    path: data/sources/wiki/Q&A로 이해하는 고객의 고민과 오로라웍스의 가치.html
+    format: html
+    source_type: internal_deck
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "목업 대화 안 가상값 '990024-1111111', '01011112222'. 마스킹 대상."
+    extractor: deterministic
+    parser: A2-d doc_html (unescape-then-parse)
+    locator_marker: null
+    locator_rule: >-
+      ⚠️ 마커 0 · sections 0 · headings 0 이라 heading 기반 분할조차 불가능하다.
+      본문 자체 번호 라벨(INTRO 01~04 / MAIN Q1~Q6 / APPENDIX / REVIEW)을 locator 로 쓰는 개별 규칙이 필요하다.
+    chars: 10315
+    source_of_record_for: 영업 현장에서 실제로 받는 고객 반문 6개, Guest/BR 용어 정의, 보험사 16곳 제안가 산정 기준표
+    known_internal_conflict: "APPENDIX '우리 솔루션이 공급되는 14개 업무 도메인' 이 BD Overview(14~20)·LeadFlow(15)와 어긋난다."
+    golden_link: [GQ-D1, GQ-D4]
+
+  - id: src_doc_openbook_autofinance
+    source_group: documents
+    path: data/sources/wiki/자동차금융 Open Book.pdf
+    format: pdf
+    source_type: bd_openbook
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    pages: 20
+    pages_nonempty: 11
+    source_of_record_for: 자동차금융 BM 의 구조·AG 역할·적합/부적합 판단 기준, 그리고 '핵심 목적이 아닌 것'의 명시
+    gap_note: "p8~p9 의 '고객 마케팅 ✗ / 상품 비교 ✗ / AG 평가 ✗ (기술적으로는 가능)' 는 CONFIRMED GAP 이 아니라 '의도적 비범위' 케이스다."
+    golden_link: [GQ-D3]
+
+  - id: src_doc_openbook_ga
+    source_group: documents
+    path: data/sources/wiki/GA Open Book.pptx.pdf
+    format: pdf
+    source_type: bd_openbook
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "p7·p9·p14 데모 캡쳐의 '9001011234567', '01087654321', '900101-1111111', '01011112222'. 형식상 실재 주민번호라 반드시 마스킹."
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    pages: 19
+    source_of_record_for: 보험설계지원 BM 의 용어 정본(설계매니저·원수사·GA 설계사·가입고객)과 설계매니저 업무 리스크
+    parser_notes:
+      ["p19 에 설계매니저 인터뷰 원문 6개가 있다(고객 원문 Pain 의 드문 사례)."]
+
+  - id: src_doc_openbook_collection
+    source_group: documents
+    path: data/sources/wiki/채권추심 BM Open Book.pdf
+    format: pdf
+    source_type: bd_openbook
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "p6 안내 예시의 '02-769-0321', '02-987-6543'(실제 대표번호로 보임)와 담당자 실명 '외부인사'."
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    pages: 16
+    source_of_record_for: 채권추심 BM 의 규제 배경(추심총량제·연락제한 요청권·채무자보호법)과 마바카드·다라카드 구축 사례
+
+  - id: src_doc_proposal_jacha_capital
+    source_group: documents
+    path: data/sources/wiki/[자차캐피탈]자동차금융_협업_솔루션_도입추진(안).docx
+    format: docx
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_docx (python-docx)
+    locator_marker: "[Heading 1] Ⅰ.~Ⅷ. / [Heading 2] ▐ 1.~3. / === [TABLE 1~6] ==="
+    paragraphs: 62
+    tables: 6
+    source_of_record_for: 경쟁 솔루션 비교표(오로라웍스 vs 협업툴A·협업툴B·플로우·협업툴D)와 고객사가 지목한 3대 통제 부재 영역
+    priority_reason: "23종 중 유일한 경쟁사 비교표다. Competitor 노드의 유일 근거."
+    doc_status: approved
+    origin: "자차캐피탈 자동차금융사업부(기획팀) 팀장, 보고일 2026-08-03"
+
+  - id: src_doc_proposal_saa_capital
+    source_group: documents
+    path: data/sources/wiki/[사아캐피탈]솔루션_확장_도입_추진안.docx
+    format: docx
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_docx
+    locator_marker: "[Heading 1] 1~8 / === [TABLE 1~5] ==="
+    paragraphs: 34
+    tables: 5
+    source_of_record_for: 타사 도입 현황 4건(오픈 완료 마바손해보험·다라카드 / 구축 중 가나손해보험 / 검토 중 마루캐피탈·BNK캐피탈)
+    known_defect:
+      id: copy_residue
+      locator: "=== [TABLE 2] === ①"
+      quote: "기업 비즈니스 채널(미르손해보험 GA 알림톡) 기반 1:1 대화"
+      note: >-
+        사아캐피탈 문서인데 셀 값과 열 제목('보험설계지원 솔루션(改)')이 다른 제안서의 잔존 텍스트다.
+        그대로 파싱하면 '사아캐피탈 ↔ 미르손해보험' 이라는 없는 관계가 생긴다.
+        claim-verdict-rules.yaml 의 OV-COPY-RESIDUE 가 이 케이스를 받는다.
+
+  - id: src_doc_proposal_bada_ins
+    source_group: documents
+    path: data/sources/wiki/오로라웍스_보험설계지원_솔루션_바다손해보험_제안.html
+    format: html
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_html (direct)
+    locator_marker: null
+    locator_rule: "마커 0. 원본 기준 sections 17 / headings 20 이므로 A2 에서 원본 HTML 을 다시 파싱해 섹션 제목('제안방안 01 · 공식대화 채널 도입' 등)을 마커로 삽입한다."
+    chars: 4728
+    source_of_record_for: 보험설계지원 제안 구조·도입 효과 산식·성과 리포트 실측치·도입 사례
+    known_internal_conflict: "§C-1(업력 27년)·§C-2(미국 금융권 벌금 180M 달러)·§C-3(1인당 원가 0.5억·절감률 30%)의 한쪽."
+    golden_link: [GQ-D7]
+
+  - id: src_doc_leadflow_bd_prompt
+    source_group: documents
+    path: data/sources/wiki/LeadFlow_BD분류_프롬프트.md
+    format: md
+    source_type: bd_registry_aux
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_md
+    locator_marker: "마크다운 헤딩(## 0. ~ ## 8.)"
+    chars: 9253
+    source_of_record_for: BD 15개의 한 줄 정의와 인접 BD 구분 규칙, 그리고 'BD 가 아니라 타겟기업 유형' 금지 목록
+    key_fact: >-
+      §3 금지 원문 — "아래는 BD가 아니라 BD의 타겟기업 유형입니다. 절대 bd 값으로 쓰지 마십시오.
+      제조, 물류, 렌털, 프랜차이즈, 식자재유통, 플랫폼, 커머스, 의료, 공공, 교육"
+      → BD Overview 가 이 6개를 BD 행으로 다루는 것과 정면 충돌한다. bd-seed.yaml 에 needs_human_confirm 으로 기록했다.
+    golden_link: [GQ-D2]
+
+  - id: src_doc_land_and_expand
+    source_group: documents
+    path: data/sources/wiki/보험설계지원 업무 도메인의 타부서 확장_1.0.pdf
+    format: pdf
+    source_type: internal_deck
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    pages: 12
+    source_of_record_for: Land & Expand 확산 사례(H사 4개 부서 / S사 5개 센터 통합 / W사 전 부서 확산 권고)와 비금융 확장 축
+    priority_reason: "Account ↔ BD 다대다 확장 관계의 유일 근거이자 비금융 BD 의 근거 문서."
+    golden_link: [GQ-D5]
+
+  - id: src_doc_si_comparison
+    source_group: documents
+    path: data/sources/wiki/SI 대비 오로라웍스 경쟁력 비교 분석(요약).docx.pdf
+    format: pdf
+    source_type: internal_analysis
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    pages: 4
+    chars: 3451
+    source_of_record_for: 마바손해보험 프로젝트 공수 실적(7개월·12.4 M/M·요구사항 55+255건)과 Solution Asset 현황(4개 프로젝트 72개 항목)
+    label_required: 추정
+    label_reason: "비교 배수(SI+AI 4.5배 · 순수 SI 8배)는 문서 스스로 가정을 밝힌 내부 분석이다. 시장 사실로 인용하면 안 된다."
+
+  # ----------------------------------------------------------------------
+  # documents (2) — DECISIONS A-10 으로 되돌린 자료. 초판에서 뺐던 것들이다.
+  # ----------------------------------------------------------------------
+  - id: src_doc_manual_contact_center
+    source_group: documents
+    path: data/sources/wiki/오로라웍스 사용자 매뉴얼 (PC, 상담센터) v2.1.pptx
+    format: pptx
+    source_type: user_manual
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "데모 캡쳐 안 전화·주민번호 형식 값이 있다. 마스킹 대상."
+    extractor: deterministic
+    parser: A2-d doc_pptx
+    locator_marker: "slide n"
+    source_of_record_for: 배포판 상담센터 화면의 실사용 동작·상한값·기본 규칙과 Add-on 6종 목록
+    doc_status: approved
+    readmit_reason: >-
+      기능맵과 중복이라 뺐던 자료다. 중복은 제외 사유가 아니라 dedup 으로 다룬다(A-10).
+      기능맵이 못 담는 "화면에서 실제로 어떻게 쓰는가"와 상한값이 여기에만 있다.
+    authority_note: "기능 도입 버전은 여전히 기능맵(release_spec)이 정본이다. 이 자료로 버전을 답하면 안 된다."
+
+  - id: src_doc_manual_coop_center
+    source_group: documents
+    path: data/sources/wiki/오로라웍스 사용자 매뉴얼 (PC, 협업센터) v2.1.pptx
+    format: pptx
+    source_type: user_manual
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "위와 같음."
+    extractor: deterministic
+    parser: A2-d doc_pptx
+    locator_marker: "slide n"
+    source_of_record_for: 배포판 협업센터 화면의 실사용 동작과 Add-on 구성(협업센터는 다운로드 승인 1종)
+    doc_status: approved
+
+  - id: src_doc_architecture_spec
+    source_group: documents
+    path: data/sources/wiki/오로라웍스 아키텍처 정의서.docx
+    format: docx
+    source_type: architecture_spec
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_docx
+    source_of_record_for: 제품이 보장하기로 한 품질 속성과 그 Tactic·절충점(개인정보 암호화, 보관기간 초과 자동 파기, 게이트웨이 분할)
+    doc_status: approved
+    caution: >-
+      드라이버 코드(CSAD1~25)가 Feature 이름처럼 보인다. Feature 노드로 승격하면 안 된다.
+      본문이 Ver.1.0.0 을 가리키는데 History 는 v2.0 현행화라고 적어 문서 안에서 어긋난다.
+
+  - id: src_doc_onboarding_html
+    source_group: documents
+    path: data/sources/wiki/오로라웍스 온보딩.html
+    format: html
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_html
+    source_of_record_for: 개발 온보딩 관점의 화면 route ↔ 소스 경로 ↔ 도메인 매핑
+    caution: >-
+      '엔터프라이즈 멀티테넌시 애플리케이션' 문구가 GQ-D6(하늘IT 멀티테넌트 개발 필요)의 오답 유혹이다.
+      제품 구조 서술이지 하늘IT 건의 전제 충족 근거가 아니다. 두 진술을 합성하지 않는다.
+
+  - id: src_doc_cx_architecture_review
+    source_group: documents
+    path: data/sources/wiki/CX관점아키텍처검토.html
+    format: html
+    source_type: internal_analysis
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_html
+    source_of_record_for: CX 관점에서 본 제품 내부 품질 과제와 개선 우선순위(사내 검토 의견)
+    caution: "여기의 '불편'은 고객 Need 가 아니라 제품 자체에 대한 사내 지적이다. Need 로 승격하지 않는다."
+
+  # ------------------------------------------------------------------
+  # 측정 문서 2종 (2026-08-10 추가)
+  #
+  # 아키텍처 개선 대상 보고서가 「아직 확인이 필요한 것」으로 남긴 6항목 중
+  # 코드에서 지금 셀 수 있는 것을 실제로 세어 문서로 만든 것이다.
+  # 의견이 아니라 측정이고, 각 수치 뒤에 그것을 얻은 명령이 적혀 있어 재현된다.
+  #
+  # 왜 소스로 넣나: 이 측정 없이는 "영향도가 큰데 통합 테스트가 부족한 곳"·
+  # "정량화가 되는가" 질문에 인용할 근거가 그래프에 하나도 없다(실측 확인).
+  # ------------------------------------------------------------------
+  - id: src_doc_arch_improvement_report
+    source_group: documents
+    # 2026-08-11: 원본이 `수임과제/` 아래로 옮겨지고 v9 → v15(슬라이드형)로 바뀌었다.
+    # 옮겨진 것을 모른 채 두어 파서 테스트 33건이 파일을 못 찾고 죽어 있었다.
+    # 내용 동일성은 확인했다: 현장 의견 19건 · 검토 항목 25건 · A1·A2·A3 ·
+    # 「아직 확인이 필요한 것」·「실제 발생 이력은 아직 확인되지 않았다」가 v15 에도 있다.
+    path: data/sources/wiki/오로라웍스 아키텍처 개선 대상 도출 보고서 (슬라이드형).html
+    format: html
+    source_type: internal_analysis
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_html
+    source_of_record_for: 현장 의견 19건을 검토 항목 25건으로 분해한 판정 원장과 세 구조 문제(A1·A2·A3) 판정 근거
+    caution: >-
+      판정 문서다. 여기의 '고객에게 생기는 문제'·'개선 시 기대 가치'는 전부 정성 서술이고
+      단위·빈도·금액이 없다. 숫자로 보이는 것 대부분은 개수가 아니라 원장의 항목 번호다
+      (1-a·7-b·18-a 형태). 25는 항목 수, 19는 의견 수다.
+      A3 은 문서 스스로 '실제 발생 이력은 아직 확인되지 않았다'고 세 곳에 적었으므로
+      A3 을 발생한 장애로 읽지 않는다.
+
+  - id: src_measured_integration_test
+    source_group: documents
+    path: ./docs/measured/통합테스트-실태-2026-08-10.md
+    format: md
+    source_type: internal_analysis
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_md
+    source_of_record_for: 모듈별 통합 테스트 마커 실측치와 모듈 경계(Kafka·ES·DLT) 검증 공백
+    caution: >-
+      마커 기반 정적 집계다. 테스트가 통과하는지는 재지 않았고 커버리지 수치도 아니다.
+      '테스트 파일 수'를 품질로 읽지 않는다 — @WebMvcTest 15개 중 14개가 API 문서 생성기다.
+      측정 시점(2026-08-10 develop)이 지나면 수치가 달라지므로 날짜와 함께 인용한다.
+
+  - id: src_measured_quantifiability
+    source_group: documents
+    path: ./docs/measured/정량화-가능성-2026-08-10.md
+    format: md
+    source_type: internal_analysis
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_md
+    source_of_record_for: 아키텍처 개선 대상의 비용 정량화 가능 여부와 그것을 막는 자료·그래프 공백
+    caution: >-
+      이 문서의 결론은 '정량화가 안 된다'이고 그 근거를 담는다. 여기 적힌 그래프 수치
+      (Deal 금액 13/107 · HAS_NEED 4/406 · 교집합 0)는 2026-08-10 스냅샷이다.
+      이 문서를 근거로 금액을 곱해 만든 값은 원문 근거가 없으므로 답변에 쓰지 않는다.
+
+  - id: src_doc_pension_channel_deck
+    source_group: documents
+    path: data/sources/wiki/[오로라소프트] B2B2C를 연결하는 연금 비즈니스 공식 채널 소개서_V2.0.pptx
+    format: pptx
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_pptx
+    locator_marker: "slide n"
+    source_of_record_for: 퇴직연금 B2B2C 공식 채널 제안 구조와 그 제안이 인용한 규제·시장 수치
+    known_internal_conflict: >-
+      '미국 금융권 개인정보 벌금 18억 달러' 가 바다손해보험 제안서의 '180M 달러' 와 10배 어긋난다.
+      두 값 다 우리 제안서의 전언이며 어느 쪽도 web_official 원문이 아니다.
+    golden_link: [GQ-D7]
+    readmit_reason: "도해 라벨이 많아 노이즈가 크다는 이유로 뺐으나, GQ-D7 의 한쪽 근거가 이 파일에만 있다."
+
+  - id: src_doc_pension_mail_deck
+    source_group: documents
+    path: data/sources/wiki/B2B 메일(퇴직연금 대상) 소개서.pptx
+    format: pptx
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_pptx
+    locator_marker: "slide n"
+    source_of_record_for: 퇴직연금 대상 메일 제안의 구성과 레퍼런스 준비 상태
+    key_fact: "'동일한 형태의 구축 레퍼런스는 아직 준비 중입니다' — 명시적 부재 진술이라 Gap 판정의 직접 근거다."
+
+  - id: src_doc_dara_card_merit
+    source_group: documents
+    path: data/sources/wiki/공적내용양식 (다라카드).docx
+    format: docx
+    source_type: internal_analysis
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_docx
+    source_of_record_for: 다라카드 구축 성과 수치(본인 연결률 2.1%p 개선, 단기 연체 월평균 8.8억 감소, 1일 2회 접촉 제한)
+    parser_notes:
+      - "문서 전체가 표 1칸이라 문단이 0개다. locator 는 §본문>TABLE 1 하나로 수렴한다."
+      - "발췌가 500자 단위로 이어지므로 locator 에 #2·#3 이 붙는다. 원문은 전량 남는다."
+
+  - id: src_doc_proposal_maba_capital
+    source_group: documents
+    path: data/sources/wiki/마바캐피탈 오로라웍스 솔루션소개.pptx.pdf
+    format: pdf
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    source_of_record_for: 마바캐피탈에 제시한 솔루션 소개 내용과 운영 정책 서술(파일 보관 기간 등)
+    known_internal_conflict: "파일 90일 자동 삭제 서술이 다른 자료와 어긋난다(conflict 측정 대상)."
+
+  - id: src_doc_ai_qa_demo_scenario
+    source_group: documents
+    path: data/sources/wiki/AI QA 데모 시나리오.pdf
+    format: pdf
+    source_type: ai_eval_dataset
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    extractor: deterministic
+    parser: A2-d doc_pdf
+    locator_marker: "=== [PAGE n] ==="
+    source_of_record_for: AI QA 데모의 고객 요구·설정 경로와 컴플라이언스 체크 항목, 그리고 환경별 프롬프트 원문
+    caution: "stage/dev 버전별 프롬프트 원문이 반복된다. 제품 사실이 아니라 그 시점 데모 설정이다."
+
+  - id: src_doc_ai_qa_dialog_samples
+    source_group: documents
+    path: data/sources/wiki/AI QA 대화 예제.xlsx
+    format: xlsx
+    source_type: ai_eval_dataset
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    extractor: deterministic
+    parser: A2-d doc_table
+    scope:
+      sheets_exclude: []
+      sheets_note: >-
+        '채권추심-컴플라이언스위반' 시트가 '로우데이터' 와 99.8% 중복이다. 시트를 빼는 대신
+        파서가 행 내용 해시로 dedup 한다(A-10: 중복은 제외 사유가 아니다).
+    source_of_record_for: AI 응답 품질의 실제 관측 기록(합성 대화 데이터 기준)
+    caution: "'가람은행' 시트 첫 행이 생성 프롬프트다. 이 파일이 합성 데이터임을 스스로 밝힌다. 실제 고객 대화가 아니다."
+
+  - id: src_doc_collection_agent_test
+    source_group: documents
+    path: data/sources/wiki/채권추심 지원 Agent 테스트.xlsx
+    format: xlsx
+    source_type: ai_eval_dataset
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    extractor: deterministic
+    parser: A2-d doc_table
+    source_of_record_for: 채권추심 지원 Agent 시나리오 테스트 결과(실패 사례 포함)
+    caution: "한 셀에 'AI 실패 응답'과 '사람이 쓴 정답'이 섞여 있다. 셀 전체를 제품 동작 근거로 쓰면 안 된다."
+
+  - id: src_doc_collection_compliance_checklist
+    source_group: documents
+    path: data/sources/wiki/채권추심-컴플라이언스 위반 체크리스트.xlsx
+    format: xlsx
+    source_type: compliance_checklist
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-d doc_table
+    source_of_record_for: 채권추심 BD 의 법률 근거 인용(채권추심법 제8~11조, 채무자보호법 제16~19조, 대부업법 제10조의2)과 '제외' 판정 사유
+
+  - id: src_doc_maba_ins_training
+    source_group: documents
+    path: data/sources/wiki/사용자 교육_마바손해보험 상담시스템.pptx.pdf
+    format: pdf
+    source_type: customer_internal_report
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: >-
+      🔴 고객사가 만든 스캔본이라 계약자·피보험자 실명과 주소가 있다. 그래서 restricted 다.
+      마스킹 후 PII 정규식 매칭 0건을 확인하지 못하면 이 항목만 다시 뺀다(A-10 단서).
+    extractor: vision
+    transcript_path: ./data/raw_probe/text/사용자 교육_마바손해보험 상담시스템.pptx.pdf.vision.txt
+    extraction_method: vision_transcription
+    transcribed_at: "2026-08-07"
+    parser: A2-d doc_vision_transcript
+    locator_marker: "===== PAGE n ====="
+    pages: 9
+    source_of_record_for: 마바손해보험이 자기 운영 프로세스로 문서화한 절차(대화방 초대 5단계, 장기설계요청 5단계, GA지원팀 역할, 영업포탈 익일 반영)
+    exception_reason: >-
+      원본이 이미지 스캔 PDF 라 pdftotext 로 1,162자밖에 나오지 않는다(9쪽). 원본 파싱으로는
+      본문을 얻을 수 없어 판독본을 정본으로 쓴다. Evidence 에 '판독본' 라벨을 붙인다.
+    transcription_guard: "판독 불확실 표기 구간은 숫자·고유명사 추출 대상에서 제외한다."
+
+  # --- 2026-08-13 추가 (#sgm캠페인 채널로 배포된 대외 소개 자료) ---
+
+  - id: src_doc_intro_finance
+    source_group: documents
+    path: data/sources/wiki/오로라소프트 종합소개서 금융.pdf
+    format: pdf
+    source_type: product_brochure
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "p7 영업 대표란에 '홍길동 상무 010-1234-5678', '김철수 본부장 010-8765-4321', 대표번호 '02) 123 - 4567', 'info@auroraworks.example'. 대외 배포물에 실린 사내 연락처지만 마스킹 대상이다."
+    extractor: vision
+    transcript_path: ./data/raw_probe/text/오로라소프트 종합소개서 금융.pdf.vision.txt
+    extraction_method: vision_transcription
+    transcribed_at: "2026-08-13"
+    parser: A2-d doc_vision_transcript
+    locator_marker: "===== PAGE n ====="
+    pages: 7
+    source_of_record_for: 금융권 대외 표준 소개 논리(고객 상담·파트너 협업·채널 연동·AI·도입 성과)와 그 소개서가 인용한 도입 성과 수치
+    exception_reason: >-
+      이미지 슬라이드라 pdftotext 로 전체 1,271자만 나온다(p1·p2 는 0자).
+      원본 파싱으로는 본문을 얻을 수 없어 판독본을 정본으로 쓴다.
+    parser_notes:
+      - "비금융본과 p3 만 다르고 나머지 6쪽은 같은 지면이다. 두 소스에 같은 문장이 두 벌 들어간다(자료의 성질이라 그대로 반영했다)."
+      - "p6 의 도입 성과는 'A손해보험'·'B캐피탈' 로 익명화되어 있다. 실명 계정으로 잇지 않는다."
+    caution: >-
+      소개서의 수치(업무 처리량 40% 증가, 인력 33% 절감·연 9.66억, 딜러 143→261)는 영업 자료의 전언이다.
+      계약·정산 원장이 아니므로 VERIFIED 로 승격하지 않는다.
+
+  - id: src_doc_intro_nonfinance
+    source_group: documents
+    path: data/sources/wiki/오로라소프트 종합소개서 비금융.pdf
+    format: pdf
+    source_type: product_brochure
+    visibility: internal
+    sensitivity: internal
+    pii_flag: true
+    pii_note: "p7 이 금융본과 같은 지면이라 같은 연락처가 있다."
+    extractor: vision
+    transcript_path: ./data/raw_probe/text/오로라소프트 종합소개서 비금융.pdf.vision.txt
+    extraction_method: vision_transcription
+    transcribed_at: "2026-08-13"
+    parser: A2-d doc_vision_transcript
+    locator_marker: "===== PAGE n ====="
+    pages: 7
+    source_of_record_for: 비금융 파트너 협업의 대외 표준 소개 논리와 적용 업무 6종(제조 거래처·유통 총판·매장관리·판매자관리·건설 현장·공공업무)
+    exception_reason: >-
+      이미지 슬라이드라 pdftotext 로 전체 2,154자만 나온다(p1·p2 는 0자).
+    parser_notes:
+      - "금융본과 p3 만 다르다."
+      - "p6 소제목이 이 비금융본에도 '금융 현장 도입 기업 실측 결과' 로 적혀 있다(원문 그대로). 비금융 실측이 아니다."
+
+  - id: src_doc_proposal_somi_life
+    source_group: documents
+    path: data/sources/wiki/[소미생명] 보험설계지원 솔루션 소개서_PT용_260812.pptx
+    format: pptx
+    source_type: proposal
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    pii_note: "화면 예시의 '홍길동' 은 가상 인물이다."
+    extractor: deterministic
+    parser: A2-d doc_pptx
+    locator_marker: "slide n"
+    slides: 28
+    source_of_record_for: 보험설계지원 솔루션의 최신 제안 논리(설계매니저 KPI 관리·고객정보 자동 등록·AI 가입설계)와 원수사가 말한 고민 5종
+    parser_notes:
+      - "PT용이라 도해 라벨이 많다. 슬라이드당 텍스트가 14~603자로 들쭉날쭉하다(전체 4,022자 / 28슬라이드)."
+
+  # ======================================================================
+  # 6. slack — 4채널 1회 덤프
+  # ======================================================================
+  - id: src_slack_all_sales_share
+    source_group: slack
+    path: ./data/sources/slack/all-영업활동공유.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "전화 8 · 사업자번호형 10자리 2. 마스킹 전 원본이다."
+    extractor: deterministic
+    parser: A2-e slack_structured_event
+    channel: "#all-영업활동공유"
+    lines: 599
+    period: "2026-02-09 ~ 2026-08-07"
+    threads: 0
+    source_of_record_for: 영업 미팅·CC 활동의 1차 로그(제목·일시·참석자·내용·Action Item)
+    parser_notes:
+      - "599건 중 545건(91.0%)이 '*[제목]*' 서식. 4개 채널 중 구조화 품질이 가장 높다."
+      - "제목 구분자가 ' - '(hyphen)와 ' – '(en-dash U+2013) 2종이다. [-–] 문자클래스로 split 하지 않으면 484건 중 상당수를 놓친다."
+      - "구분자 없는 제목 61건. 첫 줄은 무조건 제목으로 소비하고 섹션 스캔은 2번째 줄부터."
+      - "섹션 헤더 표기 흔들림 13종('Aciton Item' 등). re.sub(r'\\s+','',s).lower() 로 정규화하면 3키로 수렴한다."
+      - "Evidence 는 1단 불릿(•) 단위. 2단(◦)은 같은 Evidence 에 이어붙인다."
+      - "같은 제목이 2건씩 있는 경우 병합하지 말고 별도 Event 로 둔다(시간 경과 기록)."
+    golden_link: [GQ-D1, GQ-D3, GQ-D6]
+
+  - id: src_slack_lead_alert
+    source_group: slack
+    path: ./data/sources/slack/리드등록알림.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "🔴 PII 밀도 최고 — 전화 170 · 이메일 70 · 사업자번호형 30 · <tel: 33 · <mailto: 35. 고객사 담당자의 개인 휴대폰이 평문으로 들어 있다."
+    extractor: deterministic
+    parser: A2-e slack_lead_form
+    channel: "#리드등록알림 (C08LN6S5A0Y)"
+    lines: 440
+    period: "2025-03-31 ~ 2026-08-07"
+    threads: 329
+    source_of_record_for: 인바운드 리드 인입 사실과 첫 접촉 담당자
+    parser_notes:
+      - "메시지 포맷이 6종 섞여 있다. 유형을 먼저 분기해야 한다."
+      - "F1 구형 폼에서 '회사:' 가 빈 값이면 다음 줄 ':e-mail: 이메일:' 을 값으로 먹는다(실측 1건). 값은 같은 줄에서만 취한다."
+      - "Slackbot 메일 전달 132건은 text 가 빈 문자열이다. files[].title 을 대체 본문으로 쓴다. ⚠️ files 키는 이 파일에만 있다 — record.get('files') 로 접근."
+      - "marketingtft 봇의 기업정보 보강 수치는 틀린 사례가 있다(한빛상사↔한빛물산 오인, 사람이 정정). 전부 CANDIDATE."
+      - "채널 운영 규칙(2025-03-31 개설 원문): '쓰레드에 먼저 댓글을 다신 분이 접촉' → Deal-담당자 관계의 deterministic 근거. 단 2026년에는 봇이 첫 댓글을 다는 경우가 많아 '봇 제외 첫 사람 댓글'로 해석한다."
+    known_gap:
+      unread_threads: 311
+      total_threads: 329
+      note: "최신 18개 쓰레드(답글 78건)만 읽었다. 미독 답글 약 790건. 재수집 대상 목록은 thread_ts 로 즉시 산출 가능하다."
+    data_integrity_notice: >-
+      가장 오래된 72건(ts 1743385854 ~ 1748848054, 2025-03-31 ~ 2025-06-02)은 MCP 응답이 파일로 저장되지 않아
+      사람이 옮겨적어 재구성한 뒤 파싱했다. 나머지 290건은 저장된 툴 응답을 기계 파싱했다.
+      이 72건은 기계 파싱본과 동일한 수준의 무결성 보장이 없다.
+
+  - id: src_slack_team_sales
+    source_group: slack
+    path: ./data/sources/slack/team-영업본부.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "전화 78 · 이메일 12 · 사업자번호형 67 · <tel: 3 · <mailto: 7."
+    extractor: deterministic
+    parser: A2-e slack_freeform
+    channel: "#team-영업본부"
+    lines: 821
+    period: "2025-02-03 ~ 2026-08-06"
+    threads: 156
+    source_of_record_for: 영업본부 내부 공유와 쓰레드 토론(4채널 중 쓰레드 토론이 가장 실질적)
+    parser_notes:
+      - "⚠️ 'B팀 세일즈 데일리미팅' 봇 216건(전체 26%)이 매일 같은 문구다. 정보량 0. dedup-by-value-change 로 걸러야 한다."
+      - "user_email 이 null 인 행 237건(29%). 작성자 식별은 email 이 아니라 user_name 기준."
+      - "4채널 중 기간이 가장 길다(2025-02~). 시계열 비교의 기준선."
+
+  - id: src_slack_team_cx
+    source_group: slack
+    path: ./data/sources/slack/team-CX.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "전화 15 · 이메일 58 · 사업자번호형 4 · <mailto: 29."
+    extractor: deterministic
+    parser: A2-e slack_freeform
+    channel: "#team-CX"
+    lines: 489
+    period: "2026-04-30 ~ 2026-08-07"
+    threads: 73
+    source_of_record_for: 제품·운영 이슈 대응 기록
+    value_note: "BD 관점 가치는 낮다. 답글 비율 69%로 4채널 중 최고이며 실제 업무 협의가 쓰레드에서 이뤄진다."
+
+  # ----------------------------------------------------------------------
+  # 6-1. slack 증분 (2026-08-12 수집) — 채널별 마지막 ts 이후분만.
+  # 기존 덤프는 읽기 전용이라 손대지 않고 새 파일로 덧붙였다.
+  # 세션 안에서 Slack MCP 응답을 옮겨 적어 만들었다(기계 저장본 아님).
+  # 생성 스크립트·기준 ts 는 scratchpad/slack_inc_20260812.py 에 있다.
+  # 한계: 기준 ts 이전에 시작된 쓰레드의 새 답글은 담기지 않는다(기존 수집과 동일).
+  # ----------------------------------------------------------------------
+  - id: src_slack_all_sales_share_inc0812
+    source_group: slack
+    path: ./data/sources/slack/all-영업활동공유-증분-20260812.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "고객사 담당자 실명 다수. 마스킹 전 원본이다."
+    extractor: deterministic
+    parser: A2-e slack_structured_event
+    channel: "#all-영업활동공유"
+    lines: 7
+    period: "2026-08-10 ~ 2026-08-12"
+    threads: 0
+    source_of_record_for: 영업 미팅·CC 활동의 1차 로그(제목·일시·참석자·내용·Action Item)
+
+  - id: src_slack_lead_alert_inc0812
+    source_group: slack
+    path: ./data/sources/slack/리드등록알림-증분-20260812.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "전화 2(고객 담당자 휴대폰 평문 1 포함). 마스킹 전 원본이다."
+    extractor: deterministic
+    parser: A2-e slack_lead_form
+    channel: "#리드등록알림 (C08LN6S5A0Y)"
+    lines: 20
+    period: "2026-08-10 ~ 2026-08-12"
+    threads: 5
+    source_of_record_for: 인바운드 리드 인입 사실과 첫 접촉 담당자
+    parser_notes:
+      - "Slackbot 메일 전달 3건은 text 가 빈 문자열이고 files[].title 이 대체 본문이다."
+      - "marketingtft 봇의 기업정보 보강은 원본 채널 규칙과 같이 전부 CANDIDATE."
+
+  - id: src_slack_team_sales_inc0812
+    source_group: slack
+    path: ./data/sources/slack/team-영업본부-증분-20260812.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "고객사 담당자 실명 다수. 마스킹 전 원본이다."
+    extractor: deterministic
+    parser: A2-e slack_freeform
+    channel: "#team-영업본부"
+    lines: 11
+    period: "2026-08-10 ~ 2026-08-12"
+    threads: 3
+    source_of_record_for: 영업본부 내부 공유와 쓰레드 토론
+
+  - id: src_slack_team_cx_inc0812
+    source_group: slack
+    path: ./data/sources/slack/team-CX-증분-20260812.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "이메일 2(mailto). 마스킹 전 원본이다."
+    extractor: deterministic
+    parser: A2-e slack_freeform
+    channel: "#team-CX"
+    lines: 22
+    period: "2026-08-09 ~ 2026-08-12"
+    threads: 7
+    source_of_record_for: 제품·운영 이슈 대응 기록
+
+  # ======================================================================
+  # 6-2. slack 증분 (2026-08-13 수집)
+  # ======================================================================
+  - id: src_slack_team_sales_inc0813
+    source_group: slack
+    path: ./data/sources/slack/team-영업본부-증분-20260813.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: restricted
+    sensitivity: restricted
+    pii_flag: true
+    pii_note: "고객사 담당자 실명 4명. 마스킹 전 원본이다."
+    extractor: deterministic
+    parser: A2-e slack_freeform
+    channel: "#team-영업본부"
+    lines: 1
+    period: "2026-08-13"
+    threads: 1
+    source_of_record_for: 영업본부 내부 공유와 쓰레드 토론
+    parser_notes:
+      - "첨부(바람카드.png)와 전달된 원본 메시지 링크는 담지 않았다. 본문에 '첨부 파일 참조' 언급이 남아 사실은 보존된다."
+
+  - id: src_slack_sgm_campaign
+    source_group: slack
+    path: ./data/sources/slack/sgm캠페인.jsonl
+    format: jsonl
+    source_type: slack_thread
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    pii_note: "사내 공지만 있고 고객사 담당자·연락처가 없다. 회사 도메인 이메일은 작성자 메타에만 있다."
+    extractor: deterministic
+    parser: A2-e slack_freeform
+    channel: "#sgm캠페인"
+    lines: 3
+    period: "2026-08-05 ~ 2026-08-13"
+    threads: 3
+    source_of_record_for: 전사 SGM 캠페인의 취지·업무별 컨택 대상 부서·제품 표준 소개 문구
+    parser_notes:
+      - "'…님이 채널에 참여함' 21건은 담지 않았다. 정보가 0인데 발췌로 들어가면 원문 검색을 오염시킨다."
+      - "첨부 PDF 2개는 별도 소스로 등록했다(src_doc_intro_finance · src_doc_intro_nonfinance)."
+
+  # ======================================================================
+  # 7. repo_seed — 코드·테스트 시드 9개
+  # ======================================================================
+  - id: src_repo_codebase_index
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/codebase/INDEX.md
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    locator_rule: "{레포상대경로}#{h2 헤딩 slug}. 헤딩 원문 문자열도 함께 저장한다(한글·괄호·백틱 혼재로 slug 규칙에 의존하면 재현이 깨진다)."
+    lines: 246
+    source_of_record_for: 도메인 → 모듈/코드 위치 매핑
+    verified_scope: 모듈_구조
+
+  - id: src_repo_product_md
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/product.md
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    locator_rule: "{파일}#{h2}"
+    lines: 80
+    source_of_record_for: 제품 개요·타겟 사용자·Core Features 6분류
+    cross_check: "INDEX.md 매핑표와 교차 검증 가능해서 독립 evidence 2건을 만들기 쉽다(evidence_strength 산출에 유리)."
+    caution: "'AI 관리자/상담사/뷰어/게스트/파트너' 분류는 UI 실제 역할(admin/user/viewer)과 표현이 섞여 있어 그대로 Persona 로 승격하면 위험하다."
+
+  - id: src_repo_glossary
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/glossary.md
+    format: md
+    source_type: glossary
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    lines: 147
+    source_of_record_for: 제품 도메인 한글↔영문 용어 매핑(104행)과 동음이의 경고
+    seed_output: data/raw_probe/glossary-pairs.tsv
+    key_value: "§13 '용어 불일치 주의' — 상담원이 3개 식별자로 갈리고, Center ≡ Partition 이며, Knowledge.AccessType ≠ Label.AccessType 이다."
+
+  - id: src_repo_talkcoremanager
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/codebase/aurorasuite-talkcore/domains/talkcoremanager.md
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    source_of_record_for: 고객 상담 대화의 상태 머신(BtalkBuiltInStatus)과 API 표면
+    parser_notes:
+      [
+        "자동 생성 마커 <!-- AUTO:BEGIN {블록명} --> ... <!-- AUTO:END --> 가 그대로 섹션 경계다. 파서가 절을 안전하게 자를 수 있다.",
+      ]
+
+  - id: src_repo_kafka_topics
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/codebase/kafka-topics.md
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    lines: 275
+    source_of_record_for: 서비스 간 이벤트 흐름(토픽 매트릭스)
+
+  - id: src_repo_adoc_translation
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/asciidoc/doc/deployment_guide/talkcore/deployment-talkcore-translation.adoc
+    format: adoc
+    source_type: product_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_adoc
+    locator_rule: "{레포상대경로}#{명시앵커 있으면 그 id, 없으면 h{n}:헤딩원문}. include_path(부모 문서 체인)와 effective_level 을 추가 필드로 남긴다."
+    source_of_record_for: 외국어 대화 지원 Capability 의 라이선스 게이팅·기본 제공 언어·외부 의존
+    key_facts:
+      - ":8 — '1. *외국어 대화 지원* 라이선스 발급'"
+      - ":35 — 'NOTE: 제품 기본으로 적용한 구글 클라우는 번역 버전은 Basic v2 입니다.' (원문 오탈자 그대로)"
+    value_note: "라이선스 게이팅 사실은 딜 협상 근거로 직접 쓰인다."
+
+  - id: src_repo_adoc_member_transfer
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/asciidoc/doc/deployment_guide/talkcore/deployment-talkcore-member-transfer.adoc
+    format: adoc
+    source_type: product_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_adoc
+    source_of_record_for: 조직도 연동 시 퇴직자 처리 기본 동작
+    key_facts:
+      - ":23-24 — app.member.sync.transfer.enabled 기본값 true. 즉시 삭제하지 않고 관리자의 인수인계 대기. 그룹톡 방장 및 티켓 연결 할일이 없는 경우 자동 삭제."
+
+  - id: src_repo_adoc_customer_history
+    source_group: repo_seed
+    path: data/sources/product-repo/docs/asciidoc/doc/deployment_guide/talkcore/deployment-talkcore-customer-history.adoc
+    format: adoc
+    source_type: product_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_adoc
+    source_of_record_for: 고객 이력 연속성 판정 기준(채널별 설정 가능 필드)
+    key_facts:
+      - ":4-5 — '설정 가능한 필드는 loginId, messengerId, authId 중에서 설정 가능합니다.' / '미설정시 기본 loginId or messengerId 로 조회됩니다.'"
+    golden_link: [GQ-D8]
+    conflict_warning: >-
+      GQ-D8 의 '언제부터 되나'는 이 레포로 답할 수 없다(릴리스노트·CHANGELOG 0건).
+      게다가 talkcoremanager.md:154 'CustomerIdIssuanceFlowService — 익명 고객에게 임시 ID 부여' 는
+      '비회원은 매번 새 ID를 만든다'에 가깝게 읽혀 기능맵(2.0.0부터 상담 연속성 유지)과 상충할 소지가 있다.
+      어느 쪽이 맞는지는 미확인. A8 골든에서 conflict 측정 문항 후보로 잡는다.
+
+  - id: src_repo_routes_ts
+    source_group: repo_seed
+    path: data/sources/product-repo/src/router/routes.ts
+    format: ts
+    source_type: code
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_code
+    lines: 191
+    source_of_record_for: 실제 화면(라우트) 목록
+    cross_check: ".auroraworks/design-system/workspace/templates/*.html 22개 파일명과 교차 검증 가능."
+
+  - id: src_repo_claude_md
+    source_group: repo_seed
+    path: data/sources/product-repo/CLAUDE.md
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    locator_rule: "{파일}#{헤딩 원문}"
+    source_of_record_for: 레포 전체의 라우팅 표(무엇이 어디에 있는가)와 모듈 한 줄 요약
+
+  - id: src_repo_design_md
+    source_group: repo_seed
+    path: data/sources/product-repo/app/aurorasuite-ui-workspace/DESIGN.md
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    source_of_record_for: 디자인 시스템의 토큰·테마·컴포넌트 카탈로그(단일 소스)
+    caution: "색 토큰·컴포넌트 이름은 Feature 도 Capability 도 아니다. Feature 노드로 승격하지 않는다."
+
+# ==========================================================================
+# 번들 등록 — 파일 수가 많아 손으로 적지 않는 것들 (DECISIONS A-10)
+# ==========================================================================
+# 전개 규칙은 ingestion/source_registry.py 가 정본이다.
+#   id      = <id_prefix>_<root 기준 상대경로 slug>
+#   충돌    = 위 `sources` 에 같은 path 가 이미 있으면 개별 등록이 이기고 번들 쪽은 버린다
+#   override= 경로 규칙에 걸리면 그 항목만 값을 덮어쓴다(민감 자료를 restricted 로 올리는 통로)
+source_bundles:
+  - id: bundle_portal_adoc
+    optional: true # 데모 프로필: 자료를 채우기 전에는 빈 번들로 둔다
+    id_prefix: src_repo_adoc
+    source_group: repo_seed
+    root: data/sources/product-repo/docs/asciidoc
+    include: "**/*.adoc"
+    format: adoc
+    source_type: product_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_adoc
+    source_of_record_for: 구축·설정 가이드의 설정 키 이름과 기본값·라이선스 게이팅·외부 의존
+    note: "98개 전부. 헤딩 섹션 단위로 Evidence 를 만든다. 이미 개별 등록된 3개는 번들이 건너뛴다."
+    overrides:
+      - match: doc/operator_guide/**
+        visibility: restricted
+        sensitivity: restricted
+        source_of_record_for: 운영 절차(시스템 구성·백업 정책·헬스체크·로그 조회)
+        reason: >-
+          내부 IP 92건·서버명·OS·SSH 포트·계정 표가 있다. 빼는 대신 restricted 로 넣어
+          검색은 되되 데모 계정 응답에서는 필터되게 한다(A-10).
+      - match: doc/install/**
+        visibility: restricted
+        sensitivity: restricted
+        source_of_record_for: 설치 절차와 환경 변수·네트워크 분리 구성
+        reason: "설치 가이드도 서버 구성 값과 계정 표를 포함한다. operator_guide 와 같은 취급."
+
+  - id: bundle_repo_codebase_md
+    optional: true # 데모 프로필: 자료를 채우기 전에는 빈 번들로 둔다
+    id_prefix: src_repo_cb
+    source_group: repo_seed
+    root: data/sources/product-repo/docs/codebase
+    include: "**/*.md"
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    source_of_record_for: 모듈 구조와 도메인 → 코드 위치 매핑
+    note: "INDEX·모듈 README·domains 전부. 개별 등록된 INDEX.md·kafka-topics.md·talkcoremanager.md 는 번들이 건너뛴다."
+    caution: "코드에 대한 2차 서술이다. 기능의 사용자 관점 동작·도입 시점의 정본이 아니다."
+
+  - id: bundle_repo_project_md
+    optional: true # 데모 프로필: 자료를 채우기 전에는 빈 번들로 둔다
+    id_prefix: src_repo_proj
+    source_group: repo_seed
+    root: data/sources/product-repo/.auroraworks/project
+    include: "*.md"
+    format: md
+    source_type: repo_doc
+    visibility: internal
+    sensitivity: internal
+    pii_flag: false
+    extractor: deterministic
+    parser: A2-f repo_md
+    source_of_record_for: 제품 개요·모노레포 구조·기술 스택 버전
+    note: "product.md 는 개별 등록이 이긴다. project-structure.md·tech-stacks.md 가 여기서 들어온다."
+
+# ==========================================================================
+# Gate 1A 항목 1 대조
+# ==========================================================================
+gate_1a_projection:
+  bd_count: { required: "15+", expected: 20, from: config/bd-seed.yaml }
+  account_count:
+    {
+      required: "50+",
+      expected: "약 120",
+      from: "활동일지·주간계획·pain 원문 129종 병합 후 + Slack 118종",
+    }
+  feature_count:
+    { required: "300+", expected: 393, from: "기능맵 v2.1 고유 기능명" }
+  source_types: { required: 6, registered_groups: 7 }
+
+# ==========================================================================
+# 1A 에 넣지 않은 것
+# ==========================================================================
+# 없다. DECISIONS A-10 으로 초판의 제외 15건을 전부 되돌렸다.
+# 되돌린 내역과 각 항목의 재편입 사유는 위 `sources` 의 readmit_reason·pii_note 에 적었다.
+# 민감 자료는 빼지 않고 sensitivity=restricted 로 넣는다:
+#   src_doc_maba_ins_training (고객사 스캔본, 계약자 실명·주소)
+#   bundle_portal_adoc 의 doc/operator_guide/** · doc/install/** (내부 IP·서버명·계정)
+excluded: []

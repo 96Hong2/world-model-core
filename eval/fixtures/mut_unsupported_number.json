@@ -1,0 +1,109 @@
+{
+  "question_id": "GQ-D8",
+  "answer": {
+    "answer": {
+      "text": "이어집니다. 비회원 고객이 같은 기기로 재방문하면 진행 중인 상담을 이어서 계속할 수 있습니다[1]. 이 '비회원 상담 연속성 유지' 기능은 2.0.0 버전부터 제공됩니다[1]. 이 기능은 도입 고객 47곳에서 사용 중입니다."
+    },
+    "citations": [
+      {
+        "marker": 1,
+        "evidence_id": "ev_featuremap_r15",
+        "quoted_span": "비회원 상담 연속성 유지"
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "ev_featuremap_r15",
+        "source_id": "src_featuremap_v21",
+        "locator": "v2.1!r15",
+        "snippet": "Guest Zone(고객 화면) > 상담 대화접수 > 편의성 제공 | 비회원 상담 연속성 유지 | 비회원 고객이 같은 기기로 재방문하면 진행 중인 상담을 이어서 계속할 수 있습니다. | 1.0.0=. 1.1.0=. 2.0.0=O 2.1.0=O",
+        "authority_label": {
+          "tier": "T1",
+          "claim_domain": "product_behavior",
+          "source_type": "release_spec",
+          "policy_version": "1.0.0",
+          "source_of_record_for": "제품 기능의 존재와 도입 버전"
+        },
+        "observed_at": "2026-08-05",
+        "extractor": "deterministic",
+        "masked": true
+      }
+    ],
+    "evidence_strength": {
+      "band": "HIGH",
+      "basis": {
+        "independent_evidence": 1,
+        "highest_authority": "release_spec",
+        "contradiction": "none",
+        "recency": "current"
+      }
+    },
+    "unknowns": [],
+    "gaps": [],
+    "claims": [
+      {
+        "claim_id": "clm_guest_continuity_2_0_0",
+        "statement": "비회원 상담 연속성 유지는 2.0.0 버전부터 제공된다",
+        "status": "VERIFIED",
+        "lane": [
+          "default"
+        ],
+        "claim_kind": "product_spec",
+        "evidence_ids": [
+          "ev_featuremap_r15"
+        ]
+      }
+    ],
+    "subgraph": {
+      "nodes": [
+        {
+          "id": "feat_guest_continuity",
+          "labels": [
+            "Feature"
+          ],
+          "label_text": "비회원 상담 연속성 유지",
+          "rank": "focal",
+          "status": "VERIFIED",
+          "citation_markers": [
+            1
+          ]
+        },
+        {
+          "id": "prod_auroraworks_plus",
+          "labels": [
+            "Product"
+          ],
+          "label_text": "오로라웍스",
+          "rank": "supporting",
+          "status": null,
+          "citation_markers": []
+        }
+      ],
+      "edges": [
+        {
+          "from": "feat_guest_continuity",
+          "to": "prod_auroraworks_plus",
+          "type": "BELONGS_TO",
+          "claim_ids": [
+            "clm_guest_continuity_2_0_0"
+          ],
+          "status": "VERIFIED",
+          "cited": true
+        }
+      ],
+      "truncated": false
+    },
+    "route": {
+      "retriever": "Q-E",
+      "matched_rule": "entity_lookup:Feature",
+      "llm_classifier_used": false,
+      "claim_domain": "product_behavior"
+    },
+    "notices": {
+      "results_may_be_incomplete": false,
+      "critical_unverified_included": false,
+      "raw_signal_count": 0
+    }
+  },
+  "_about": "정상 GQ-D8 답변 끝에 어떤 Evidence 에도 없는 '47' 을 붙였다. traceability 만 깨져야 한다."
+}

@@ -22,9 +22,11 @@ jobs:
             --exclude-dir=.git --exclude-dir=node_modules --exclude=sweep.yml .
 
       - name: 휴대전화 패턴
+        # 마스킹 테스트·PII 정책 문서가 일부러 담아 둔 합성 번호만 허용한다.
         run: |
           ! grep -rnE '01[016789][- .]?[0-9]{3,4}[- .]?[0-9]{4}' \
-            --exclude-dir=.git --exclude-dir=node_modules --exclude=sweep.yml --exclude=package-lock.json .
+            --exclude-dir=.git --exclude-dir=node_modules --exclude=sweep.yml --exclude=package-lock.json . \
+          | grep -vE '010-0000-0000|010-1234-5678|010-8765-4321|010-2345-6789|010-3456-7890|01087654321|0101234567890|01011112222|010-XXXX-XXXX|900101-1111111|9001011234567'
 
       - name: 로컬 절대경로
         run: |

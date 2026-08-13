@@ -1,0 +1,141 @@
+{
+  "question_id": "GQ-G1",
+  "answer": {
+    "answer": {
+      "text": "대응 Capability 근거를 찾지 못했습니다. 자료는 퇴직연금을 통제 불가 도메인으로 분류하고[1], 이 도메인의 외부 상대를 기업HR로 특정합니다[2]. 반면 구축 사례 자료에는 퇴직연금사업자가 한 곳도 없어 대응 근거가 확인되지 않습니다. 근거가 없다는 것이 기능이 없다는 뜻은 아니므로 가능성 있는 공백으로만 봅니다."
+    },
+    "citations": [
+      {
+        "marker": 1,
+        "evidence_id": "ev_bd_guest_control",
+        "quoted_span": "통제 불가 도메인으로 분류"
+      },
+      {
+        "marker": 2,
+        "evidence_id": "ev_bd_definition_pension",
+        "quoted_span": "외부 상대를 기업HR로 특정"
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "ev_bd_guest_control",
+        "source_id": "src_bd_overview",
+        "locator": "Guest통제!B2",
+        "snippet": "Guest 통제 항목 행: 도메인별 통제 여부가 정리되어 있다",
+        "authority_label": {
+          "tier": "T1",
+          "claim_domain": "customer_need",
+          "source_type": "bd_registry",
+          "policy_version": "1.0.0",
+          "source_of_record_for": "BD 속성"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      },
+      {
+        "evidence_id": "ev_bd_definition_pension",
+        "source_id": "src_bd_overview",
+        "locator": "BM 정의!r7",
+        "snippet": "금융 | 퇴직연금 | 퇴직연금사업자 | 업무지원팀 | 기업HR | 업무처리",
+        "authority_label": {
+          "tier": "T1",
+          "claim_domain": "customer_need",
+          "source_type": "bd_registry",
+          "policy_version": "1.0.0"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      }
+    ],
+    "evidence_strength": {
+      "band": "MEDIUM",
+      "basis": {
+        "independent_evidence": 1,
+        "highest_authority": "bd_registry",
+        "contradiction": "none",
+        "recency": "current"
+      }
+    },
+    "unknowns": [
+      "퇴직연금 도메인의 구축 사례는 확인된 자료가 없습니다."
+    ],
+    "gaps": [
+      {
+        "subject": "퇴직연금 도메인의 외부 사용자 통제 대응",
+        "verdict": "POSSIBLE",
+        "basis": {
+          "reason": "필요 근거는 레지스트리에 직접 있으나 대응 근거는 찾지 못했습니다. 기능이 없다고 적은 자료도 없습니다.",
+          "need_evidence_ids": [
+            "ev_bd_guest_control",
+            "ev_bd_definition_pension"
+          ],
+          "capability_evidence_ids": [],
+          "explicit_absence_evidence_ids": [],
+          "out_of_scope_by_design": false
+        }
+      }
+    ],
+    "subgraph": {
+      "nodes": [
+        {
+          "id": "bd_pension",
+          "labels": [
+            "BusinessDomain"
+          ],
+          "label_text": "퇴직연금",
+          "rank": "focal",
+          "status": null,
+          "citation_markers": [
+            1,
+            2
+          ]
+        },
+        {
+          "id": "need_channel_control",
+          "labels": [
+            "Need"
+          ],
+          "label_text": "개인 메신저 업무로 회사가 통제하지 못함",
+          "rank": "cited",
+          "status": "CANDIDATE",
+          "citation_markers": [
+            1
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "need_channel_control",
+          "to": "bd_pension",
+          "type": "IN_DOMAIN",
+          "claim_ids": [
+            "clm_pension_guest_control"
+          ],
+          "status": "CANDIDATE",
+          "cited": true
+        }
+      ],
+      "truncated": false
+    },
+    "route": {
+      "retriever": "Q-S",
+      "matched_rule": "strategic:gap_analysis",
+      "llm_classifier_used": false,
+      "claim_domain": "customer_need"
+    },
+    "notices": {
+      "results_may_be_incomplete": false,
+      "critical_unverified_included": false,
+      "raw_signal_count": 1
+    },
+    "raw_signals": [
+      {
+        "evidence_id": "",
+        "source_id": "",
+        "locator": "",
+        "snippet": "통제 불가 : 보험설계지원, 자동차금융, 퇴직연금, WM, 제조",
+        "in_graph": false
+      }
+    ]
+  }
+}

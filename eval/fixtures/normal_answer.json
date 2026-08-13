@@ -1,0 +1,685 @@
+{
+  "_about": "채점기 자체를 검증하는 정상 픽스처. 답변 문장은 A8 이 자료 원문만 보고 손으로 썼고, evidence.snippet 은 전부 원본 파일의 실제 값이다(시스템 출력에서 복사한 것이 없다). PII 는 마스킹된 형태로만 들어 있다.",
+  "answers": [
+    {
+      "question_id": "GQ-D6",
+      "answer": {
+        "answer": {
+          "text": "하늘IT와 구독 사업을 추진하려면 멀티테넌트 구조를 새로 개발해야 한다는 것이 아직 남아 있는 전제입니다[1]. 개발 범위는 유저 라이선스 구조까지 포함해 작지 않다고 적혀 있고[2], 현 구조는 교보와 오로라소프트가 한서버에서 여러 고객을 대응하는 형태라 확인이 필요한 상태입니다[2]. 구축과 구독 두 형태를 놓고 사업화 방향을 검토하는 단계입니다[3].",
+          "recommendation": "구독 판매 정책을 정하기 전에 멀티테넌트 개발 범위와 현 서버 구조를 먼저 확정해야 합니다."
+        },
+        "citations": [
+          {
+            "marker": 1,
+            "evidence_id": "ev_kyobo_p2_multitenant",
+            "quoted_span": "멀티테넌트 구조를 새로 개발"
+          },
+          {
+            "marker": 2,
+            "evidence_id": "ev_kyobo_p2_license",
+            "quoted_span": "유저 라이선스 구조까지 포함해 작지 않다"
+          },
+          {
+            "marker": 3,
+            "evidence_id": "ev_kyobo_p1_subscription",
+            "quoted_span": "구축과 구독 두 형태"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev_kyobo_p2_multitenant",
+            "source_id": "src_doc_haneul_it_memo",
+            "locator": "p.2",
+            "snippet": "고려사항 / 멀티테넌트 구조 개발 필요 (Saas로 이야기되었는데 이 부분 검토 후 협의 필요) / 내부구조는 변경 가능",
+            "authority_label": {
+              "tier": "T2",
+              "claim_domain": "product_intent",
+              "source_type": "internal_memo",
+              "policy_version": "1.0.0",
+              "source_of_record_for": "하늘IT 협업의 미해결 전제"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          },
+          {
+            "evidence_id": "ev_kyobo_p2_license",
+            "source_id": "src_doc_haneul_it_memo",
+            "locator": "p.2",
+            "snippet": "개발 필요 : 유저 라이선스 구조 등 고려하면 범위가 작진 않음. / 확인 필요 현 구조 (교보+오로라소프트 한서버에서 멀티 고객 대응)",
+            "authority_label": {
+              "tier": "T2",
+              "claim_domain": "product_intent",
+              "source_type": "internal_memo",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          },
+          {
+            "evidence_id": "ev_kyobo_p1_subscription",
+            "source_id": "src_doc_haneul_it_memo",
+            "locator": "p.1",
+            "snippet": "3. 핵심 의사결정 사항 #1 구독 사업 모델 추진 여부 / 현재 하늘IT와 통합 솔루션을 구축/구독 두 가지 형태로 사업화하는 방향을 검토중",
+            "authority_label": {
+              "tier": "T2",
+              "claim_domain": "product_intent",
+              "source_type": "internal_memo",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          }
+        ],
+        "evidence_strength": {
+          "band": "MEDIUM",
+          "basis": {
+            "independent_evidence": 1,
+            "highest_authority": "internal_memo",
+            "contradiction": "none",
+            "recency": "current"
+          }
+        },
+        "unknowns": [
+          "멀티테넌트 개발 일정과 담당 조직은 확인된 자료가 없습니다."
+        ],
+        "gaps": [
+          {
+            "subject": "구독 사업에 필요한 멀티테넌트 구조",
+            "verdict": "CONFIRMED",
+            "basis": {
+              "reason": "구독 사업을 하려면 개발이 필요하다고 문서가 직접 적고 있습니다.",
+              "explicit_absence_evidence_ids": ["ev_kyobo_p2_multitenant"],
+              "need_evidence_ids": ["ev_kyobo_p1_subscription"]
+            }
+          }
+        ],
+        "subgraph": {
+          "nodes": [
+            {
+              "id": "acct_kyobo_dts",
+              "labels": ["Account"],
+              "label_text": "하늘IT",
+              "rank": "focal",
+              "status": null,
+              "citation_markers": [3]
+            },
+            {
+              "id": "cap_multitenant",
+              "labels": ["Capability"],
+              "label_text": "멀티테넌트 구조",
+              "rank": "cited",
+              "status": "CRITICAL",
+              "citation_markers": [1, 2]
+            },
+            {
+              "id": "src_haneul_memo",
+              "labels": ["Source"],
+              "label_text": "하늘IT 협업 관련 검토 사항",
+              "rank": "supporting",
+              "status": null,
+              "citation_markers": []
+            }
+          ],
+          "edges": [
+            {
+              "from": "acct_kyobo_dts",
+              "to": "cap_multitenant",
+              "type": "BLOCKED_BY",
+              "claim_ids": ["clm_kyobo_multitenant"],
+              "status": "CRITICAL",
+              "cited": true
+            }
+          ],
+          "truncated": false
+        },
+        "route": {
+          "retriever": "Q-E",
+          "matched_rule": "entity_lookup:Account+Capability",
+          "llm_classifier_used": false,
+          "claim_domain": "product_intent"
+        },
+        "notices": {
+          "results_may_be_incomplete": false,
+          "critical_unverified_included": true,
+          "raw_signal_count": 0
+        }
+      }
+    },
+
+    {
+      "question_id": "GQ-D7",
+      "answer": {
+        "answer": {
+          "text": "자료마다 값이 다릅니다. 보험설계지원 제안서는 미국 금융권 부과된 벌금을 180M 달러(한화 약 2,564억 원)로 적고[1], 연금 소개서는 18억 달러(약 2조 5,668억)로 적습니다[2]. 두 값은 자릿수가 달라 어느 쪽이 맞는지 원자료 확인이 필요합니다."
+        },
+        "citations": [
+          {
+            "marker": 1,
+            "evidence_id": "ev_shinhan_ez_fine",
+            "quoted_span": "180M 달러"
+          },
+          {
+            "marker": 2,
+            "evidence_id": "ev_pension_deck_fine",
+            "quoted_span": "18억 달러"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev_shinhan_ez_fine",
+            "source_id": "src_doc_proposal_bada_ins",
+            "locator": "업무 개선점 > 개인정보 이슈",
+            "snippet": "상시 보안 리스크 노출 · 정보 관리 개인 의존 (미국 금융권 부과된 벌금 180M 달러 - 한화 약 2,564억 원)",
+            "authority_label": {
+              "tier": "T4",
+              "claim_domain": "market_fact",
+              "source_type": "proposal",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          },
+          {
+            "evidence_id": "ev_pension_deck_fine",
+            "source_id": "src_doc_pension_b2b2c_deck",
+            "locator": "slide 14",
+            "snippet": "업무에 개인 메신저 사용한 미국 금융사 / 18억 달러 (약 2조 5,668억) 벌금 부과 / 직원에게도 최대 12억 벌금",
+            "authority_label": {
+              "tier": "T4",
+              "claim_domain": "market_fact",
+              "source_type": "proposal",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          }
+        ],
+        "evidence_strength": {
+          "band": "LOW",
+          "basis": {
+            "independent_evidence": 2,
+            "highest_authority": "proposal",
+            "contradiction": "detected",
+            "recency": "unknown"
+          }
+        },
+        "unknowns": [
+          "두 값의 원출처(규제기관 발표 원문)는 어느 자료에도 표기되어 있지 않습니다."
+        ],
+        "gaps": [],
+        "disputes": [
+          {
+            "subject": "미국 금융권 개인 메신저 사용 벌금 규모",
+            "sides": [
+              {
+                "statement": "180M 달러 (한화 약 2,564억 원)",
+                "evidence_ids": ["ev_shinhan_ez_fine"]
+              },
+              {
+                "statement": "18억 달러 (약 2조 5,668억)",
+                "evidence_ids": ["ev_pension_deck_fine"]
+              }
+            ]
+          }
+        ],
+        "subgraph": {
+          "nodes": [
+            {
+              "id": "need_pii_compliance",
+              "labels": ["Need"],
+              "label_text": "개인정보 노출로 인한 규제 위반 위험",
+              "rank": "focal",
+              "status": "CANDIDATE",
+              "citation_markers": [1, 2]
+            },
+            {
+              "id": "src_bada_ins",
+              "labels": ["Source"],
+              "label_text": "바다손해보험 보험설계지원 제안서",
+              "rank": "cited",
+              "status": null,
+              "citation_markers": [1]
+            },
+            {
+              "id": "src_pension_deck",
+              "labels": ["Source"],
+              "label_text": "B2B2C 연금 비즈니스 공식 채널 소개서",
+              "rank": "cited",
+              "status": null,
+              "citation_markers": [2]
+            }
+          ],
+          "edges": [
+            {
+              "from": "need_pii_compliance",
+              "to": "src_bada_ins",
+              "type": "ABOUT",
+              "status": null,
+              "cited": true
+            },
+            {
+              "from": "need_pii_compliance",
+              "to": "src_pension_deck",
+              "type": "ABOUT",
+              "status": null,
+              "cited": true
+            }
+          ],
+          "truncated": false
+        },
+        "route": {
+          "retriever": "Q-E",
+          "matched_rule": "entity_lookup:Need",
+          "llm_classifier_used": false,
+          "claim_domain": "market_fact"
+        },
+        "notices": {
+          "results_may_be_incomplete": false,
+          "critical_unverified_included": false,
+          "raw_signal_count": 0
+        }
+      }
+    },
+
+    {
+      "question_id": "GQ-D8",
+      "answer": {
+        "answer": {
+          "text": "이어집니다. 비회원 고객이 같은 기기로 재방문하면 진행 중인 상담을 이어서 계속할 수 있습니다[1]. 이 '비회원 상담 연속성 유지' 기능은 2.0.0 버전부터 제공됩니다[1]."
+        },
+        "citations": [
+          {
+            "marker": 1,
+            "evidence_id": "ev_featuremap_r15",
+            "quoted_span": "비회원 상담 연속성 유지"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev_featuremap_r15",
+            "source_id": "src_featuremap_v21",
+            "locator": "v2.1!r15",
+            "snippet": "Guest Zone(고객 화면) > 상담 대화접수 > 편의성 제공 | 비회원 상담 연속성 유지 | 비회원 고객이 같은 기기로 재방문하면 진행 중인 상담을 이어서 계속할 수 있습니다. | 1.0.0=. 1.1.0=. 2.0.0=O 2.1.0=O",
+            "authority_label": {
+              "tier": "T1",
+              "claim_domain": "product_behavior",
+              "source_type": "release_spec",
+              "policy_version": "1.0.0",
+              "source_of_record_for": "제품 기능의 존재와 도입 버전"
+            },
+            "observed_at": "2026-08-05",
+            "extractor": "deterministic",
+            "masked": true
+          }
+        ],
+        "evidence_strength": {
+          "band": "HIGH",
+          "basis": {
+            "independent_evidence": 1,
+            "highest_authority": "release_spec",
+            "contradiction": "none",
+            "recency": "current"
+          }
+        },
+        "unknowns": [],
+        "gaps": [],
+        "claims": [
+          {
+            "claim_id": "clm_guest_continuity_2_0_0",
+            "statement": "비회원 상담 연속성 유지는 2.0.0 버전부터 제공된다",
+            "status": "VERIFIED",
+            "lane": ["default"],
+            "claim_kind": "product_spec",
+            "evidence_ids": ["ev_featuremap_r15"]
+          }
+        ],
+        "subgraph": {
+          "nodes": [
+            {
+              "id": "feat_guest_continuity",
+              "labels": ["Feature"],
+              "label_text": "비회원 상담 연속성 유지",
+              "rank": "focal",
+              "status": "VERIFIED",
+              "citation_markers": [1]
+            },
+            {
+              "id": "prod_auroraworks_plus",
+              "labels": ["Product"],
+              "label_text": "오로라웍스",
+              "rank": "supporting",
+              "status": null,
+              "citation_markers": []
+            }
+          ],
+          "edges": [
+            {
+              "from": "feat_guest_continuity",
+              "to": "prod_auroraworks_plus",
+              "type": "BELONGS_TO",
+              "claim_ids": ["clm_guest_continuity_2_0_0"],
+              "status": "VERIFIED",
+              "cited": true
+            }
+          ],
+          "truncated": false
+        },
+        "route": {
+          "retriever": "Q-E",
+          "matched_rule": "entity_lookup:Feature",
+          "llm_classifier_used": false,
+          "claim_domain": "product_behavior"
+        },
+        "notices": {
+          "results_may_be_incomplete": false,
+          "critical_unverified_included": false,
+          "raw_signal_count": 0
+        }
+      }
+    },
+
+    {
+      "question_id": "GQ-A2",
+      "answer": {
+        "answer": {
+          "text": "제공되지 않습니다. 마바손해보험이 요청한 모바일 PDF 다운로드는 보안 정책상 제한으로 처리되었고[1], 고객 정보보호팀도 다운로드 불가 의견입니다[2]. 다만 PC와 동일한 PDF 뷰어 기능은 개발 검토 중이라고 적혀 있습니다[2]."
+        },
+        "citations": [
+          {
+            "marker": 1,
+            "evidence_id": "ev_pain_block_r13_result",
+            "quoted_span": "보안 정책상 제한"
+          },
+          {
+            "marker": 2,
+            "evidence_id": "ev_pain_block_r13_guide",
+            "quoted_span": "PDF 뷰어 기능은 개발 검토 중"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev_pain_block_r13_result",
+            "source_id": "src_pain_registry",
+            "locator": "대응 불가·제약!r13",
+            "snippet": "구조·정책 상충 | 모바일 PDF 다운로드 | 마바손해보험 | 보안 정책상 제한",
+            "authority_label": {
+              "tier": "T2",
+              "claim_domain": "product_behavior",
+              "source_type": "pain_registry",
+              "policy_version": "1.0.0",
+              "source_of_record_for": "명시적 기능 부재와 그 사유"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          },
+          {
+            "evidence_id": "ev_pain_block_r13_guide",
+            "source_id": "src_pain_registry",
+            "locator": "대응 불가·제약!F13",
+            "snippet": "개인정보 보호를 위한 보안 정책상 제한이며 고객 정보보호팀도 다운로드 불가 의견. PC와 동일한 PDF 뷰어 기능은 개발 검토 중 — 신규 고객에는 보안 원칙과 뷰어 대안으로 안내",
+            "authority_label": {
+              "tier": "T2",
+              "claim_domain": "product_behavior",
+              "source_type": "pain_registry",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          }
+        ],
+        "evidence_strength": {
+          "band": "HIGH",
+          "basis": {
+            "independent_evidence": 1,
+            "highest_authority": "pain_registry",
+            "contradiction": "none",
+            "recency": "current"
+          }
+        },
+        "unknowns": [],
+        "gaps": [
+          {
+            "subject": "모바일 PDF 다운로드",
+            "verdict": "CONFIRMED",
+            "basis": {
+              "reason": "요구 항목이 대응 불가·제약 목록에 올라 있고 처리 결과가 제한으로 확정되어 있습니다.",
+              "explicit_absence_evidence_ids": ["ev_pain_block_r13_result"],
+              "need_evidence_ids": ["ev_pain_block_r13_guide"],
+              "out_of_scope_by_design": false
+            }
+          }
+        ],
+        "subgraph": {
+          "nodes": [
+            {
+              "id": "acct_hana_nonlife",
+              "labels": ["Account"],
+              "label_text": "마바손해보험",
+              "rank": "focal",
+              "status": null,
+              "citation_markers": [1]
+            },
+            {
+              "id": "need_mobile_pdf",
+              "labels": ["Need"],
+              "label_text": "모바일에서 PDF 문서를 내려받아 확인",
+              "rank": "cited",
+              "status": "CANDIDATE",
+              "citation_markers": [1, 2]
+            }
+          ],
+          "edges": [
+            {
+              "from": "acct_hana_nonlife",
+              "to": "need_mobile_pdf",
+              "type": "HAS_NEED",
+              "claim_ids": ["clm_hana_mobile_pdf"],
+              "status": "CANDIDATE",
+              "cited": true
+            }
+          ],
+          "truncated": false
+        },
+        "route": {
+          "retriever": "Q-E",
+          "matched_rule": "entity_lookup:Account+Need",
+          "llm_classifier_used": false,
+          "claim_domain": "product_behavior"
+        },
+        "notices": {
+          "results_may_be_incomplete": false,
+          "critical_unverified_included": false,
+          "raw_signal_count": 0
+        }
+      }
+    },
+
+    {
+      "question_id": "GQ-G1",
+      "answer": {
+        "answer": {
+          "text": "대응 Capability 근거를 찾지 못했습니다. 자료는 퇴직연금을 통제 불가 도메인으로 분류하고[1], 이 도메인의 외부 상대를 기업HR로 특정합니다[2]. 반면 구축 사례 자료에는 퇴직연금사업자가 한 곳도 없어 대응 근거가 확인되지 않습니다. 근거가 없다는 것이 기능이 없다는 뜻은 아니므로 가능성 있는 공백으로만 봅니다."
+        },
+        "citations": [
+          {
+            "marker": 1,
+            "evidence_id": "ev_bd_guest_control",
+            "quoted_span": "통제 불가 도메인으로 분류"
+          },
+          {
+            "marker": 2,
+            "evidence_id": "ev_bd_definition_pension",
+            "quoted_span": "외부 상대를 기업HR로 특정"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev_bd_guest_control",
+            "source_id": "src_bd_overview",
+            "locator": "Guest통제!B2",
+            "snippet": "통제 불가 : 보험설계지원, 자동차금융, 퇴직연금, WM, 제조",
+            "authority_label": {
+              "tier": "T1",
+              "claim_domain": "customer_need",
+              "source_type": "bd_registry",
+              "policy_version": "1.0.0",
+              "source_of_record_for": "BD 속성"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          },
+          {
+            "evidence_id": "ev_bd_definition_pension",
+            "source_id": "src_bd_overview",
+            "locator": "BM 정의!r7",
+            "snippet": "금융 | 퇴직연금 | 퇴직연금사업자 | 업무지원팀 | 기업HR | 업무처리",
+            "authority_label": {
+              "tier": "T1",
+              "claim_domain": "customer_need",
+              "source_type": "bd_registry",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          }
+        ],
+        "evidence_strength": {
+          "band": "MEDIUM",
+          "basis": {
+            "independent_evidence": 1,
+            "highest_authority": "bd_registry",
+            "contradiction": "none",
+            "recency": "current"
+          }
+        },
+        "unknowns": ["퇴직연금 도메인의 구축 사례는 확인된 자료가 없습니다."],
+        "gaps": [
+          {
+            "subject": "퇴직연금 도메인의 외부 사용자 통제 대응",
+            "verdict": "POSSIBLE",
+            "basis": {
+              "reason": "필요 근거는 레지스트리에 직접 있으나 대응 근거는 찾지 못했습니다. 기능이 없다고 적은 자료도 없습니다.",
+              "need_evidence_ids": [
+                "ev_bd_guest_control",
+                "ev_bd_definition_pension"
+              ],
+              "capability_evidence_ids": [],
+              "explicit_absence_evidence_ids": [],
+              "out_of_scope_by_design": false
+            }
+          }
+        ],
+        "subgraph": {
+          "nodes": [
+            {
+              "id": "bd_pension",
+              "labels": ["BusinessDomain"],
+              "label_text": "퇴직연금",
+              "rank": "focal",
+              "status": null,
+              "citation_markers": [1, 2]
+            },
+            {
+              "id": "need_channel_control",
+              "labels": ["Need"],
+              "label_text": "개인 메신저 업무로 회사가 통제하지 못함",
+              "rank": "cited",
+              "status": "CANDIDATE",
+              "citation_markers": [1]
+            }
+          ],
+          "edges": [
+            {
+              "from": "need_channel_control",
+              "to": "bd_pension",
+              "type": "IN_DOMAIN",
+              "claim_ids": ["clm_pension_guest_control"],
+              "status": "CANDIDATE",
+              "cited": true
+            }
+          ],
+          "truncated": false
+        },
+        "route": {
+          "retriever": "Q-S",
+          "matched_rule": "strategic:gap_analysis",
+          "llm_classifier_used": false,
+          "claim_domain": "customer_need"
+        },
+        "notices": {
+          "results_may_be_incomplete": false,
+          "critical_unverified_included": false,
+          "raw_signal_count": 0
+        }
+      }
+    },
+
+    {
+      "question_id": "GQ-K1",
+      "answer": {
+        "answer": {
+          "text": "연락처는 개인정보라 알려드리지 않습니다. 영업 활동일지에 고객사 담당자 열과 연락처 열이 있지만, 전화번호는 수집 단계에서 마스킹되어 그대로 저장되지 않습니다[1]. 담당 영업대표를 통해 확인하시기 바랍니다."
+        },
+        "citations": [
+          {
+            "marker": 1,
+            "evidence_id": "ev_activity_contact_column",
+            "quoted_span": "마스킹되어 그대로 저장되지 않습니다"
+          }
+        ],
+        "evidence": [
+          {
+            "evidence_id": "ev_activity_contact_column",
+            "source_id": "src_sales_activity_log",
+            "locator": "7월13일~16일!r7",
+            "snippet": "일자 | 담당자 | 고객사 | 활동유형 | 활동내용 | 결과 | 고객사 담당자 | 연락처 → 값은 [담당자] / 010-****-**** 로 마스킹됨",
+            "authority_label": {
+              "tier": "T1",
+              "claim_domain": "deal_fact",
+              "source_type": "sales_activity_log",
+              "policy_version": "1.0.0"
+            },
+            "extractor": "deterministic",
+            "masked": true
+          }
+        ],
+        "evidence_strength": {
+          "band": "MEDIUM",
+          "basis": {
+            "independent_evidence": 1,
+            "highest_authority": "sales_activity_log",
+            "contradiction": "none",
+            "recency": "current"
+          }
+        },
+        "unknowns": ["개인 연락처는 정책상 답변에 담지 않습니다."],
+        "gaps": [],
+        "subgraph": {
+          "nodes": [
+            {
+              "id": "acct_kb_nonlife",
+              "labels": ["Account"],
+              "label_text": "가나손해보험",
+              "rank": "focal",
+              "status": null,
+              "citation_markers": [1]
+            }
+          ],
+          "edges": [],
+          "truncated": false
+        },
+        "route": {
+          "retriever": "Q-E",
+          "matched_rule": "entity_lookup:Account",
+          "llm_classifier_used": false,
+          "claim_domain": "deal_fact"
+        },
+        "notices": {
+          "results_may_be_incomplete": true,
+          "critical_unverified_included": false,
+          "raw_signal_count": 0
+        }
+      }
+    }
+  ]
+}

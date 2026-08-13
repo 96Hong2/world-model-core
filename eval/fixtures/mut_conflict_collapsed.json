@@ -1,0 +1,128 @@
+{
+  "question_id": "GQ-D7",
+  "answer": {
+    "answer": {
+      "text": "미국 금융권에 부과된 벌금은 180M 달러(한화 약 2,564억 원)입니다[1]."
+    },
+    "citations": [
+      {
+        "marker": 1,
+        "evidence_id": "ev_shinhan_ez_fine",
+        "quoted_span": "180M 달러"
+      }
+    ],
+    "evidence": [
+      {
+        "evidence_id": "ev_shinhan_ez_fine",
+        "source_id": "src_doc_proposal_bada_ins",
+        "locator": "업무 개선점 > 개인정보 이슈",
+        "snippet": "상시 보안 리스크 노출 · 정보 관리 개인 의존 (미국 금융권 부과된 벌금 180M 달러 - 한화 약 2,564억 원)",
+        "authority_label": {
+          "tier": "T4",
+          "claim_domain": "market_fact",
+          "source_type": "proposal",
+          "policy_version": "1.0.0"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      },
+      {
+        "evidence_id": "ev_pension_deck_fine",
+        "source_id": "src_doc_pension_b2b2c_deck",
+        "locator": "slide 14",
+        "snippet": "업무에 개인 메신저 사용한 미국 금융사 / 18억 달러 (약 2조 5,668억) 벌금 부과 / 직원에게도 최대 12억 벌금",
+        "authority_label": {
+          "tier": "T4",
+          "claim_domain": "market_fact",
+          "source_type": "proposal",
+          "policy_version": "1.0.0"
+        },
+        "extractor": "deterministic",
+        "masked": true
+      }
+    ],
+    "evidence_strength": {
+      "band": "LOW",
+      "basis": {
+        "independent_evidence": 2,
+        "highest_authority": "proposal",
+        "contradiction": "detected",
+        "recency": "unknown"
+      }
+    },
+    "unknowns": [
+      "두 값의 원출처(규제기관 발표 원문)는 어느 자료에도 표기되어 있지 않습니다."
+    ],
+    "gaps": [],
+    "subgraph": {
+      "nodes": [
+        {
+          "id": "need_pii_compliance",
+          "labels": [
+            "Need"
+          ],
+          "label_text": "개인정보 노출로 인한 규제 위반 위험",
+          "rank": "focal",
+          "status": "CANDIDATE",
+          "citation_markers": [
+            1,
+            2
+          ]
+        },
+        {
+          "id": "src_bada_ins",
+          "labels": [
+            "Source"
+          ],
+          "label_text": "바다손해보험 보험설계지원 제안서",
+          "rank": "cited",
+          "status": null,
+          "citation_markers": [
+            1
+          ]
+        },
+        {
+          "id": "src_pension_deck",
+          "labels": [
+            "Source"
+          ],
+          "label_text": "B2B2C 연금 비즈니스 공식 채널 소개서",
+          "rank": "cited",
+          "status": null,
+          "citation_markers": [
+            2
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "need_pii_compliance",
+          "to": "src_bada_ins",
+          "type": "ABOUT",
+          "status": null,
+          "cited": true
+        },
+        {
+          "from": "need_pii_compliance",
+          "to": "src_pension_deck",
+          "type": "ABOUT",
+          "status": null,
+          "cited": true
+        }
+      ],
+      "truncated": false
+    },
+    "route": {
+      "retriever": "Q-E",
+      "matched_rule": "entity_lookup:Need",
+      "llm_classifier_used": false,
+      "claim_domain": "market_fact"
+    },
+    "notices": {
+      "results_may_be_incomplete": false,
+      "critical_unverified_included": false,
+      "raw_signal_count": 0
+    }
+  },
+  "_about": "정상 GQ-D7 에서 18억 달러 쪽을 지우고 한쪽 값으로 단일 합성했다. conflict 만 깨져야 한다(각주 2와 그 노드도 함께 지워 subgraph 정합은 유지)."
+}
