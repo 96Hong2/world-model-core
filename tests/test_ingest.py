@@ -1434,8 +1434,8 @@ class TestAmountNormalization:
         "raw, expected",
         [
             # 변경 이력이 한 셀에 담긴 표기. 마지막(최신) 값을 쓴다.
-            ("4억 -> 3.44억", 344_000_000),
-            ("4억 → 3.44억", 344_000_000),
+            ("4억 -> 3.15억", 315_000_000),
+            ("4억 → 3.15억", 315_000_000),
             # 원 접미사. 자유 서술에서 이 형태로 온다(슬랙 계약 보고 393,000,000원).
             ("393,000,000원", 393_000_000),
             ("2억원", 200_000_000),
@@ -1484,9 +1484,9 @@ class TestAmountNormalization:
     def test_원문은_그대로_보존된다(self):
         from ingestion.pipeline.direct import parse_amount
 
-        raw, krw = parse_amount("4억 -> 3.44억")
-        assert raw == "4억 -> 3.44억", "정규화하면서 원문을 고쳤다"
-        assert krw == pytest.approx(344_000_000)
+        raw, krw = parse_amount("4억 -> 3.15억")
+        assert raw == "4억 -> 3.15억", "정규화하면서 원문을 고쳤다"
+        assert krw == pytest.approx(315_000_000)
 
 
 # ---------------------------------------------------------------------------

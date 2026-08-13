@@ -337,7 +337,7 @@
         "outcome": { "enum": ["won", "lost", "open", "unknown"] },
         "amount_raw": {
           "type": "string",
-          "description": "원문 문자열 필수 보존. 실측 11종: '-','0.5','0.6억','0.8','1.9억','2.7억','2억','3.77억','4억','4억 -> 3.44억','5억'. 단위 미통일 + 변경이력이 한 셀."
+          "description": "원문 문자열 필수 보존. 실측 11종: '-','0.5','0.6억','0.8','1.9억','2.7억','2억','2.85억','4억','4억 -> 3.15억','5억'. 단위 미통일 + 변경이력이 한 셀."
         },
         "amount_krw": {
           "anyOf": [{ "type": "number" }, { "type": "null" }],
@@ -498,7 +498,7 @@
         "last_ingested_at": { "$ref": "#/$defs/nullableIsoDate" },
         "origin": {
           "type": "string",
-          "description": "작성 주체. 예: 기능맵 문서정보 시트의 작성자(주대희)·검토자(전략사업본부)."
+          "description": "작성 주체. 예: 기능맵 문서정보 시트의 작성자(홍길동)·검토자(전략사업본부)."
         },
         "author_role": { "type": "string" },
         "doc_status": {
