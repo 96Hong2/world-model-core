@@ -52,6 +52,20 @@ cd web && npm install && npm run dev
 환경 변수는 `BWM_NEO4J_URI` / `BWM_NEO4J_USER` / `BWM_NEO4J_PASSWORD` 로 넘긴다.
 기본값은 `infra/docker-compose.yml` 의 로컬 데모 값과 같다.
 
+## 내 도메인의 월드모델 만들기
+
+이 레포는 GitHub 템플릿이다. **Use this template** 로 새 레포를 뜨면
+커밋 이력 없이 독립된 내 레포가 생긴다(fork 와 달리 원본과 연결이 없다).
+
+1. `config/*.yaml` 을 내 자료에 맞게 다시 쓴다 (소스 목록 → 별칭 → 시드 → 분류)
+2. `contracts/ontology.schema.json` 의 라벨을 내 도메인의 개념으로 바꾼다
+3. `web/src/app/profile.ts` 의 제품·시스템 이름을 바꾼다
+4. `data/sources/` 에 자료를 넣고 적재를 돌린다
+
+테스트는 세 층이다. 단위·계약 테스트는 항상 돌고, 실자료 통합 테스트는
+원본 파일이 있을 때만, 코퍼스 통합 테스트는 `WM_CORPUS_TESTS=1` 로
+명시했을 때만 돈다. 자료 없이 클론해도 전체 suite 가 green 이다.
+
 ## 데이터는 커밋하지 않는다
 
 `data/` 전체가 gitignore 다. 원문 자료, 파싱 산출물, LLM 호출 원장, 캐시는

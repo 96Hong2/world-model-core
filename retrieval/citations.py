@@ -46,7 +46,7 @@ def strip_uncited_sentences(text: str, dropped_markers: Iterable[int]) -> str:
 def _split_sentences(line: str) -> list[str]:
     """마침표·느낌표는 **뒤가 공백이거나 줄 끝일 때만** 문장 경계다.
 
-    그러지 않으면 '3.77억' 이 '3.' 에서 쪼개져, 각주 문장을 지울 때
+    그러지 않으면 '2.85억' 이 '3.' 에서 쪼개져, 각주 문장을 지울 때
     '격차는 3.' 같은 훼손 조각이 남는다(api/guards.split_sentences 와 같은 규칙.
     retrieval 은 api 를 import 하지 않으므로 규칙을 복제한다).
     """

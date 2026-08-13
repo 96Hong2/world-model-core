@@ -3,7 +3,7 @@
 docs-inventory §0-1 이 실측한 대로 HTML 4종에는 locator 마커가 하나도 없다. 그래서 원본을
 다시 파싱해 두 가지 규칙 중 하나로 좌표를 만든다.
 
-  direct    : 원본에 heading 이 살아 있는 문서(신한EZ손보 제안서, sections 17 / headings 20).
+  direct    : 원본에 heading 이 살아 있는 문서(바다손해보험 제안서, sections 17 / headings 20).
               제목 경로를 그대로 locator 로 쓴다 → `§솔루션 제안>제안방안 01 · …`
   unescape  : 본문이 escape 된 채 스크립트 데이터에 박혀 있어 heading 이 0개인 문서
               (Q&A 덱). 판정은 실측으로 한다 — 직파싱 116자 vs unescape 후 10,315자.

@@ -19,7 +19,7 @@ from .verdict import CriticalityEngine, VerdictEngine
 
 _SPACE = re.compile(r"\s+")
 _AMOUNT_PLAIN = re.compile(r"^([0-9]{6,})$")
-# 변경 이력을 한 칸에 담은 표기를 가른다: '4억 -> 3.44억'.
+# 변경 이력을 한 칸에 담은 표기를 가른다: '4억 -> 3.15억'.
 _AMOUNT_REVISION = re.compile(r"->|→|=>")
 # 금액 뒤에 붙는 단서와 어림 표현. 값 자체가 아니라 곁말이다.
 _AMOUNT_PAREN = re.compile(r"\([^)]*\)\s*$")

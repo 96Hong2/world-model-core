@@ -383,7 +383,7 @@ class AnswerService:
         text = anchor_orphan_tokens(text, evidence, question, marker_for=allocator.existing)
 
         # (3-2) 그래도 남으면 그 값은 **원문 검색 발췌에만** 있는 것이다. 실측(GQ-D1): 답변의
-        # `6.66억원` 은 근거 발췌 20건 어디에도 없고 참고 신호에 있었다. 참고 신호는 설계상
+        # `5.5억원` 은 근거 발췌 20건 어디에도 없고 참고 신호에 있었다. 참고 신호는 설계상
         # 각주 번호를 주지 않으므로(§ synthesis `_render_raw`) 모델이 옳게 써도 추적이 끊긴다.
         # 그래서 그 발췌를 근거 목록으로 승격해 번호를 준다 — 모듈 docstring 이 이미 정한 방식이고,
         # 승격된 것은 "추가 원문 근거"에서 뺀다(그 섹션의 안내문이 거짓이 되지 않게).
