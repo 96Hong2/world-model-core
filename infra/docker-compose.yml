@@ -1,0 +1,44 @@
+# Business World Model 로컬 그래프 DB.
+#
+#   docker compose -f infra/docker-compose.yml up -d
+#   python -m graph.ddl apply
+#
+# 데이터는 named volume 에 남는다. 컨테이너를 지웠다 다시 띄워도 그래프가 유지된다.
+# 전부 지우고 처음부터 다시 넣으려면 `docker compose -f infra/docker-compose.yml down -v`.
+#
+# 자격증명은 로컬 데모용 고정값이다. 외부에 노출되는 곳에 띄우지 않는다.
+
+# 프로젝트 이름을 고정한다. 고정하지 않으면 볼륨 이름이 파일이 놓인 디렉토리 이름을 따라가서
+# 경로가 바뀔 때 다른 볼륨이 붙는다.
+name: bwm
+
+services:
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: bwm-neo4j
+    restart: unless-stopped
+    ports:
+      - "7474:7474" # HTTP (Neo4j Browser)
+      - "7687:7687" # Bolt (드라이버 접속)
+    environment:
+      NEO4J_AUTH: neo4j/bwmdemo123
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_server_memory_heap_max__size: 2G
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+    healthcheck:
+      # 인증까지 통과해야 준비된 것으로 본다. 부팅 직후 Bolt 포트만 열린 상태를 준비 완료로 오인하지 않는다.
+      test:
+        [
+          "CMD-SHELL",
+          "cypher-shell -u neo4j -p bwmdemo123 'RETURN 1' >/dev/null 2>&1 || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 40s
+
+volumes:
+  neo4j-data:
+  neo4j-logs:

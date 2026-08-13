@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worldmodel.example/contracts/parsed_record.schema.json",
+  "title": "파서 산출 레코드 (A2 → A4 공유 계약)",
+  "description": "A2 파서 6종이 공통으로 내보내는 중간 형식. A4 Snapshot Ingest 가 이것만 읽는다. Lead 가 소유하며 개별 워크스트림은 수정하지 않는다(변경 필요 시 Lead integration 단계에서).",
+
+  "$defs": {
+    "SourceRecord": {
+      "type": "object",
+      "description": "data/parsed/<source_id>.source.json 파일 1개의 내용. Source 노드가 된다.",
+      "required": [
+        "source_id",
+        "source_type",
+        "format",
+        "canonical_location",
+        "content_hash",
+        "origin",
+        "acl_visibility",
+        "sensitivity",
+        "pii_flag",
+        "source_of_record_for",
+        "parser",
+        "parsed_at",
+        "evidence_count"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source_id": { "type": "string", "pattern": "^src_[a-z0-9_]+$" },
+        "source_type": {
+          "type": "string",
+          "description": "contracts/source_type.enum.json 의 값"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "xlsx",
+            "pdf",
+            "pptx",
+            "docx",
+            "html",
+            "md",
+            "adoc",
+            "slack_jsonl",
+            "code",
+            "txt"
+          ]
+        },
+        "canonical_location": {
+          "type": "string",
+          "description": "원본 절대경로 또는 Slack channel_id"
+        },
+        "version": { "type": ["string", "null"] },
+        "content_hash": {
+          "type": "string",
+          "description": "원본 파일 sha256. 재실행 idempotency 의 기준"
+        },
+        "modified_at": { "type": ["string", "null"], "format": "date-time" },
+        "origin": {
+          "type": "string",
+          "enum": ["internal", "customer", "partner", "public"]
+        },
+        "author_role": {
+          "type": ["string", "null"],
+          "description": "authority 판정 원료. rank 는 저장하지 않는다"
+        },
+        "doc_status": {
+          "type": ["string", "null"],
+          "enum": ["final", "draft", "wip", "deprecated", null]
+        },
+        "acl_visibility": {
+          "type": "string",
+          "enum": ["public", "internal", "restricted"]
+        },
+        "sensitivity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "pii_flag": { "type": "boolean" },
+        "source_of_record_for": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "이 Source 가 정본인 사실 종류. §4 ⑥ VERIFIED 판정의 유일한 근거"
+        },
+        "parser": { "type": "string" },
+        "parser_version": { "type": "string" },
+        "parsed_at": { "type": "string", "format": "date-time" },
+        "evidence_count": { "type": "integer", "minimum": 0 },
+        "extractor": {
+          "type": "string",
+          "enum": [
+            "native",
+            "pdftotext",
+            "vision",
+            "bs4",
+            "python-pptx",
+            "python-docx",
+            "openpyxl",
+            "slack_mcp"
+          ]
+        },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+
+    "EvidenceRecord": {
+      "type": "object",
+      "description": "data/parsed/<source_id>.jsonl 의 한 줄. Evidence 노드가 된다.",
+      "required": [
+        "evidence_id",
+        "source_id",
+        "locator",
+        "excerpt",
+        "excerpt_hash",
+        "unit",
+        "pii_masked"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "pattern": "^ev_[a-z0-9_]+$",
+          "description": "결정적으로 생성한다(source_id + locator 해시). 2회 파싱 시 동일해야 한다"
+        },
+        "source_id": { "type": "string" },
+        "locator": {
+          "type": "string",
+          "description": "사람이 원본에서 이 자리를 찾아갈 수 있는 좌표. 형식은 unit 별로 고정한다: sheet!A12 / p.34 / slide 7 / Q3 / §설치>DB / slack:C08.../1785472597.376409 / path/to/File.java#L120"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "row",
+            "page",
+            "slide",
+            "message",
+            "section",
+            "qa_item",
+            "code_symbol"
+          ]
+        },
+        "excerpt": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "마스킹 완료된 원문 발췌. 500자 초과는 자른다"
+        },
+        "excerpt_hash": { "type": "string" },
+        "authored_at": { "type": ["string", "null"], "format": "date-time" },
+        "author_name": { "type": ["string", "null"] },
+        "pii_masked": {
+          "type": "boolean",
+          "const": true,
+          "description": "마스킹 전 데이터를 내보내는 것은 금지다. 항상 true"
+        },
+        "pii_hits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "count"],
+            "properties": {
+              "kind": { "type": "string" },
+              "count": { "type": "integer" }
+            },
+            "additionalProperties": false
+          },
+          "description": "무엇을 몇 개 가렸는지. 마스킹 게이트 검증용"
+        },
+        "structured": {
+          "type": ["object", "null"],
+          "description": "결정적 직행 데이터. 이 값이 있으면 A4 는 LLM 없이 노드·엣지를 만든다. 없으면 LLM 추출 대상이 된다.",
+          "properties": {
+            "record_kind": {
+              "type": "string",
+              "enum": [
+                "feature_row",
+                "bd_row",
+                "bd_market",
+                "bd_maturity",
+                "bd_targets",
+                "activity_row",
+                "weekly_row",
+                "pain_row",
+                "deal_row",
+                "lead_alert",
+                "meeting_note",
+                "code_asset",
+                "doc_section"
+              ]
+            }
+          },
+          "required": ["record_kind"]
+        },
+        "raw_len": { "type": "integer", "description": "자르기 전 원문 길이" },
+        "lang": { "type": ["string", "null"] }
+      }
+    }
+  },
+
+  "oneOf": [
+    { "$ref": "#/$defs/SourceRecord" },
+    { "$ref": "#/$defs/EvidenceRecord" }
+  ]
+}

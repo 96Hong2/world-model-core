@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+web/dist/
+.env
+
+# 실데이터·파생 산출물·감사 로그. 발췌에 크리덴셜·PII 가 섞일 수 있어 커밋 금지.
+data/
+scratchpad/
+.DS_Store

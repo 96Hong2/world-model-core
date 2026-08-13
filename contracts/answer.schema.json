@@ -1,0 +1,419 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worldmodel.example/contracts/answer.schema.json",
+  "title": "Answer Contract (Phase 1A)",
+  "description": "POST /ask 응답 정본 1벌. 프론트 계약이자 eval 채점 입력이다. v1.0 §G-5를 REVISED §0·§4·§5로 개정: confidence(숫자) → evidence_strength(밴드+basis), raw_signals[] 추가, gaps 3값 판정 추가, denied_source_count 부재 유지.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "answer",
+    "citations",
+    "evidence",
+    "evidence_strength",
+    "unknowns",
+    "gaps",
+    "subgraph",
+    "route",
+    "notices"
+  ],
+
+  "x-forbidden-fields": {
+    "confidence": "확률처럼 읽히는 숫자 노출 금지(REVISED §0 27행). evidence_strength.band + basis 로 대체한다.",
+    "confidence_band": "confidence 라는 어휘 자체를 사용자 계약에서 제거한다.",
+    "denied_source_count": "권한으로 걸러진 것은 개수·존재를 밝히지 않는다(v1.0 §G-5). notices.results_may_be_incomplete 불리언 하나만 노출한다."
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["confidence"] },
+      { "required": ["confidence_band"] },
+      { "required": ["denied_source_count"] }
+    ]
+  },
+
+  "properties": {
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "recommendation": {
+          "type": "string",
+          "description": "§10 좌측 패널의 Recommendation 영역. 없으면 생략."
+        },
+        "estimated_parts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Q-S가 집계 위에 올린 '추정' 문장. 사실 인용과 분리 표시한다."
+        }
+      }
+    },
+
+    "citations": {
+      "type": "array",
+      "description": "본문 각주. citation 검증(D)에서 evidence_id 가 evidence[] 에 실존하지 않으면 그 문장을 제거한다(traceability 100%).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["marker", "evidence_id"],
+        "properties": {
+          "marker": { "type": "integer", "minimum": 1 },
+          "evidence_id": { "type": "string", "minLength": 1 },
+          "quoted_span": {
+            "type": "string",
+            "description": "본문에서 이 각주가 붙은 구간."
+          }
+        }
+      }
+    },
+
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "source_id",
+          "locator",
+          "snippet",
+          "authority_label"
+        ],
+        "properties": {
+          "evidence_id": { "type": "string", "minLength": 1 },
+          "source_id": { "type": "string", "minLength": 1 },
+          "locator": {
+            "type": "string",
+            "minLength": 1,
+            "description": "원본 위치. 3클릭 경로의 종착점이다. 형식별 실측 마커는 ontology.schema.json Evidence.locator 참조."
+          },
+          "snippet": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "마스킹 후 발췌. 500자 상한."
+          },
+          "authority_label": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tier",
+              "claim_domain",
+              "source_type",
+              "policy_version"
+            ],
+            "description": "1A는 인용 라벨링까지만. rerank·strength 상한·authority_caveat 전면 배선은 1B(REVISED §0·§5).",
+            "properties": {
+              "tier": { "enum": ["T1", "T2", "T3", "T4", "T5"] },
+              "claim_domain": {
+                "$ref": "policy.schema.json#/$defs/claimDomain"
+              },
+              "source_type": { "$ref": "source_type.enum.json" },
+              "policy_version": { "type": "string" },
+              "source_of_record_for": { "type": "string" },
+              "caveat": {
+                "type": "string",
+                "description": "예: '실동작 최고권위(production_signal) 부재'. 1A는 표시만."
+              }
+            }
+          },
+          "observed_at": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }]
+          },
+          "extractor": {
+            "enum": ["deterministic", "vision"],
+            "description": "vision 이면 UI에 '사람/모델 판독본' 라벨을 붙인다."
+          },
+          "masked": { "type": "boolean" }
+        }
+      }
+    },
+
+    "evidence_strength": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["band", "basis"],
+      "description": "REVISED §4: 사용자 노출은 HIGH/MEDIUM/LOW + basis. 내부 산식은 유지 가능하되 숫자를 확률처럼 노출하지 않는다.",
+      "properties": {
+        "band": { "enum": ["HIGH", "MEDIUM", "LOW"] },
+        "basis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "independent_evidence",
+            "highest_authority",
+            "contradiction",
+            "recency"
+          ],
+          "properties": {
+            "independent_evidence": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "서로 다른 Source 수. 같은 Source의 여러 발췌는 1로 센다."
+            },
+            "highest_authority": { "$ref": "source_type.enum.json" },
+            "contradiction": {
+              "enum": ["none", "detected"],
+              "description": "1A는 측정만. DISPUTED 병렬 제시 UX·단일합성 금지 가드는 1B."
+            },
+            "recency": { "enum": ["current", "aging", "stale", "unknown"] },
+            "source_type_variety": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "unknowns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "'확인된 자료 없음'을 명시적으로 말하는 자리. 근거 부재를 부재의 근거로 취급하지 않는다(§8 상시 불변 원칙)."
+    },
+
+    "raw_signals": {
+      "type": "array",
+      "description": "1A '추가 원문 근거'. Graph retrieval 과 병행한 Evidence fulltext top-K 결과이며 합성 인용과 섞지 않는다. 1B에서 '아직 구조화된 Knowledge에는 반영되지 않았지만 원본 Evidence에서 관련 신호 발견' UX로 완성한다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["evidence_id", "snippet", "locator", "source_id"],
+        "properties": {
+          "evidence_id": { "type": "string" },
+          "source_id": { "type": "string" },
+          "locator": { "type": "string" },
+          "snippet": { "type": "string", "maxLength": 500 },
+          "match_terms": { "type": "array", "items": { "type": "string" } },
+          "in_graph": {
+            "type": "boolean",
+            "description": "false = 그래프에 반영되지 않은 신호. UI에서 구분 표시."
+          }
+        }
+      }
+    },
+
+    "gaps": {
+      "type": "array",
+      "description": "REVISED §5·A5: Product Gap 3값 판정. Need→Capability 연결 부재만으로 CONFIRMED 를 출력하지 않는다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["subject", "verdict", "basis"],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "description": "무엇에 대한 gap 인가. 예: '구독 사업에 필요한 멀티테넌트 구조'."
+          },
+          "verdict": {
+            "enum": ["CONFIRMED", "POSSIBLE", "UNKNOWN"],
+            "description": "CONFIRMED=명시적 기능 부재 확인 또는 Lost Deal/Objection 등 직접 Evidence 존재 / POSSIBLE=강한 Need Evidence는 있으나 대응 Capability Evidence 미발견 / UNKNOWN=판단할 자료 자체가 부족"
+          },
+          "basis": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["reason"],
+            "properties": {
+              "reason": { "type": "string", "minLength": 1 },
+              "need_evidence_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "capability_evidence_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "explicit_absence_evidence_ids": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "CONFIRMED 를 주장하려면 여기가 비어 있으면 안 된다."
+              },
+              "out_of_scope_by_design": {
+                "type": "boolean",
+                "description": "'기술적으로는 가능하지만 핵심 목적이 아님' 케이스(BD Open Book 류 문서의 명시)를 CONFIRMED GAP 과 구분한다."
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "disputes": {
+      "type": "array",
+      "description": "1A는 측정만. 값이 있어도 단일 합성으로 뭉개지 않는다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["subject", "sides"],
+        "properties": {
+          "subject": { "type": "string" },
+          "sides": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["statement", "evidence_ids"],
+              "properties": {
+                "statement": { "type": "string" },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_id", "statement", "status"],
+        "properties": {
+          "claim_id": { "type": "string" },
+          "statement": { "type": "string" },
+          "status": { "$ref": "state.enum.json#/$defs/status" },
+          "lane": {
+            "type": "array",
+            "items": { "$ref": "state.enum.json#/$defs/lane" }
+          },
+          "claim_kind": { "$ref": "state.enum.json#/$defs/claim_kind" },
+          "evidence_ids": { "type": "array", "items": { "type": "string" } },
+          "temporal": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "valid_from": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "valid_until": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "last_verified_at": {
+                "anyOf": [{ "type": "string" }, { "type": "null" }]
+              },
+              "stale_flag": { "type": "boolean" }
+            }
+          },
+          "contradicted_by": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+
+    "subgraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges"],
+      "description": "이번 답변에 실제 사용된 Subgraph만. 초기 노드 ≤30, 응답 상한 노드 50 / 엣지 100. 절단 순서는 focal → cited → supporting(§10).",
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "labels", "label_text", "rank"],
+            "properties": {
+              "id": { "type": "string" },
+              "labels": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1
+              },
+              "label_text": { "type": "string" },
+              "rank": {
+                "enum": ["focal", "cited", "supporting"],
+                "description": "노드 시각 위계. Authority 를 노드 중요도에 쓰지 않는다 — Authority 는 Evidence Drawer 와 Badge 에서만 표시(REVISED §10)."
+              },
+              "status": {
+                "anyOf": [
+                  { "$ref": "state.enum.json#/$defs/status" },
+                  { "type": "null" }
+                ]
+              },
+              "citation_markers": {
+                "type": "array",
+                "items": { "type": "integer" }
+              },
+              "expanded": {
+                "type": "boolean",
+                "description": "1-hop expand 로 추가된 노드는 연한 표시."
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to", "type"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "type": { "type": "string" },
+              "claim_ids": { "type": "array", "items": { "type": "string" } },
+              "status": {
+                "anyOf": [
+                  { "$ref": "state.enum.json#/$defs/status" },
+                  { "type": "null" }
+                ]
+              },
+              "cited": { "type": "boolean" }
+            }
+          }
+        },
+        "truncated": { "type": "boolean" }
+      }
+    },
+
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retriever"],
+      "properties": {
+        "retriever": {
+          "enum": ["Q-E", "Q-M", "Q-S"],
+          "description": "Q-E entity-centric / Q-M multi-hop 템플릿 / Q-S strategic 집계+합성."
+        },
+        "matched_rule": { "type": "string" },
+        "llm_classifier_used": {
+          "type": "boolean",
+          "description": "Router 3단: 템플릿 → 신호 규칙 → S enum 폴백."
+        },
+        "claim_domain": { "$ref": "policy.schema.json#/$defs/claimDomain" },
+        "domain_classification_failed": {
+          "type": "boolean",
+          "description": "true 면 중립 프로파일로 동작하고 '질문 유형 미분류' 캐비앗을 단다."
+        }
+      }
+    },
+
+    "next_actions": { "type": "array", "items": { "type": "string" } },
+
+    "notices": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["results_may_be_incomplete"],
+      "properties": {
+        "results_may_be_incomplete": {
+          "type": "boolean",
+          "description": "sensitivity 필터로 무언가 걸러졌을 수 있음을 알리는 유일한 신호. 개수·존재는 밝히지 않는다."
+        },
+        "stale_labeled_count": { "type": "integer", "minimum": 0 },
+        "critical_unverified_included": {
+          "type": "boolean",
+          "description": "미검증 CRITICAL 이 결과에 포함됐음을 알린다. 검색에서 제외하지 않는 것이 목적(REVISED §0)."
+        },
+        "raw_signal_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "query_id": { "type": "string" },
+    "policy_version": { "type": "string" },
+    "answered_at": { "type": "string" }
+  }
+}

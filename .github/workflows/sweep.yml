@@ -1,0 +1,36 @@
+name: sweep
+
+# 공개 저장소 위생 게이트.
+# 시크릿·개인정보·로컬 절대경로·실데이터가 커밋에 섞이면 머지 전에 잡는다.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    name: 시크릿·PII·실데이터 sweep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 시크릿 패턴
+        run: |
+          ! grep -rnE -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|xox[baprs]-[0-9A-Za-z-]{10,}|sk-ant-[0-9A-Za-z_-]{20,}|AKIA[0-9A-Z]{16}|ghp_[0-9A-Za-z]{30,}|github_pat_[0-9A-Za-z_]{30,}' \
+            --exclude-dir=.git --exclude-dir=node_modules --exclude=sweep.yml .
+
+      - name: 휴대전화 패턴
+        run: |
+          ! grep -rnE '01[016789][- .]?[0-9]{3,4}[- .]?[0-9]{4}' \
+            --exclude-dir=.git --exclude-dir=node_modules --exclude=sweep.yml --exclude=package-lock.json .
+
+      - name: 로컬 절대경로
+        run: |
+          ! grep -rn '/Users/' \
+            --exclude-dir=.git --exclude-dir=node_modules --exclude=sweep.yml .
+
+      - name: 실데이터 디렉토리 커밋 금지
+        run: |
+          test -z "$(git ls-files data scratchpad)"

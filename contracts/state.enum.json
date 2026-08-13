@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worldmodel.example/contracts/state.enum.json",
+  "title": "Knowledge state / lane / claim_kind enum",
+  "description": "REVISED §0(24행)·§4 ⑤⑥·§5 기준. v1.0 §E-2의 8상태 전이표 전체와 3 Lane 실운영은 1B로 이동했고, 1A는 상태 필드 + 판정 규칙만 운용한다. 상태를 갖는 것은 Claim 뿐이다 — Evidence 는 불변·무상태이고 Observation 은 확정 후 불변이다(v1.0 §E-1).",
+  "type": "object",
+  "required": ["status"],
+  "properties": {
+    "status": { "$ref": "#/$defs/status" },
+    "lane": { "type": "array", "items": { "$ref": "#/$defs/lane" } },
+    "claim_kind": { "$ref": "#/$defs/claim_kind" }
+  },
+
+  "$defs": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "VERIFIED",
+        "CANDIDATE",
+        "CRITICAL",
+        "UNVERIFIED",
+        "DISPUTED",
+        "SUPERSEDED",
+        "ARCHIVED"
+      ]
+    },
+    "lane": {
+      "type": "string",
+      "enum": ["default", "critical", "conflict"]
+    },
+    "claim_kind": {
+      "type": "string",
+      "enum": [
+        "product_spec",
+        "bd_registry_fact",
+        "deal_fact",
+        "market_assessment",
+        "customer_generalization",
+        "strategic_judgment",
+        "interpretation"
+      ],
+      "description": "주장 유형. config/claim-verdict-rules.yaml 이 source_type × claim_kind 로 판정한다."
+    }
+  },
+
+  "x-status-catalog": {
+    "VERIFIED": {
+      "used_in_1a": true,
+      "meaning": "해당 Source 가 그 사실의 정본이고 원문에 명시된 사실인 Claim.",
+      "how_reached_in_1a": "config/claim-verdict-rules.yaml 의 (source_type × claim_kind) 규칙에서 verified_allowed=true 이고 LLM 추출물이 아니며 criticality 태그가 없을 때 deterministic 하게 부여.",
+      "example": "기능맵 v2.1 r15 → Claim '비회원 상담 연속성 유지는 2.0.0부터 제공된다'.",
+      "guard": "AND 승격 게이트(G1 독립≥2 + 타입≥2 + band≥B + 모순0)는 1B다. 1A는 정본성만으로 부여하므로 규칙표 밖의 조합은 절대 VERIFIED 로 올리지 않는다."
+    },
+    "CANDIDATE": {
+      "used_in_1a": true,
+      "meaning": "시장성·고객 일반화·전략적 판단·해석, 그리고 모든 LLM 추출물.",
+      "how_reached_in_1a": "규칙표에서 verified_allowed=false 이거나 extractor 가 LLM 이면 무조건.",
+      "example": "BD Overview 기대효과가 B2B유통 계열을 관리 BM으로 분류했다 → Observation 은 확정, Claim 'B2B유통은 유망 시장이다' 는 CANDIDATE.",
+      "guard": "구조화되어 있다 = 원문에 명시되어 있다 이지, 일반화된 Claim 이 검증되었다가 아니다."
+    },
+    "CRITICAL": {
+      "used_in_1a": true,
+      "meaning": "criticality 규칙이 발화한 Claim. 검증 여부와 무관하게 검색에서 절대 제외되지 않는 것이 목적이다.",
+      "how_reached_in_1a": "config/criticality-rules.yaml 의 규칙이 하나라도 걸리면 lane 에 critical 추가 + status 를 CRITICAL 로 승격(단독 Evidence 1건이어도).",
+      "example": "일일보고 '경영진 의사결정 지원' / 내부 메모 '멀티테넌트 구조 개발 필요'(코퍼스 중 1개 파일에만 등장).",
+      "guard": "CRITICAL 은 신뢰도 상승이 아니다. 답변에는 '미검증' 표기와 함께 노출한다. Small LLM 태거 추가는 1B."
+    },
+    "UNVERIFIED": {
+      "used_in_1a": true,
+      "meaning": "critical 로 걸렸으나 정본 근거가 없어 VERIFIED 로 갈 수 없는 Claim. CRITICAL 과 짝으로 쓰인다.",
+      "how_reached_in_1a": "criticality 발화 + 규칙표 verified_allowed=false.",
+      "example": "Slack 리드알림 봇이 보강한 매출액·사원수 수치(실측 오류 사례 있음)에 전략계정 규칙이 걸린 경우.",
+      "guard": "사람 승인 워크플로우는 V2. 1A는 상태 표기와 검색 포함만 보장한다."
+    },
+    "DISPUTED": {
+      "used_in_1a": false,
+      "used_in_1a_partially": "lane=conflict 부여까지만 1A(측정). status 를 DISPUTED 로 바꾸는 전이와 병렬 제시 UX·단일합성 금지 가드는 1B(B3).",
+      "meaning": "동일 subject-key 에 양립 불가한 값이 확정된 Claim.",
+      "measured_candidates": "실측에서 흔한 후보 유형 — 업력 표기 불일치, 외부 인용 수치의 단위 어긋남(달러/원화), 1인당 원가 상이, 제품 버전 표기 병존, 서비스 수 불일치, 보관기간 상이, 사용 규모의 시점 미표기, BD 개수 불일치, 문서 내부 오류."
+    },
+    "SUPERSEDED": {
+      "used_in_1a": false,
+      "meaning": "동일 subject-key 의 신규 Claim 이 대체한 구 Claim.",
+      "why_field_kept": "REVISED §0(23행): Snapshot 이라 전이는 안 쓰지만 valid_from·superseded 필드는 유지한다(v2.0 데이터 이관 방지). supersede 연쇄는 1B(B1)."
+    },
+    "ARCHIVED": {
+      "used_in_1a": false,
+      "meaning": "보존 기간 경과 또는 Entity deprecated. 종단이며 부활 없음.",
+      "why_field_kept": "상태 집합을 나중에 넓히지 않기 위해 1A 계약에 포함만 한다. 1A ingest 는 이 값을 만들지 않는다."
+    }
+  },
+
+  "x-lane-catalog": {
+    "default": {
+      "used_in_1a": true,
+      "meaning": "v1.0 §E-3 의 Pattern Lane 에 해당. 사람이 보지 않는 것이 기본이며 이것이 운영 비용을 낮춘다."
+    },
+    "critical": {
+      "used_in_1a": true,
+      "meaning": "criticality 규칙 발화 시 빈도 무관 진입. 핵심은 승격이 아니라 '검색 단계에서 사라지지 않는 것'이다. 승격을 기다리면 이미 누락이다."
+    },
+    "conflict": {
+      "used_in_1a": true,
+      "used_in_1a_scope": "부여(측정)만 한다. 게이트·병렬 제시 UX는 1B.",
+      "meaning": "동일 subject-key 의 기존 Claim 과 양립 불가한 값을 가질 때 진입. lane 은 복수 부여가 가능하다(critical 이면서 conflict 일 수 있다)."
+    }
+  },
+
+  "x-invariants": [
+    "I1 VERIFIED Claim 은 SUPPORTS Evidence 를 1개 이상 갖는다.",
+    "I2 DISPUTED(또는 lane=conflict) 는 단일 답으로 합성하지 않는다.",
+    "I3 SUPERSEDED·ARCHIVED 는 '현재 사실' 답변에 사용하지 않는다.",
+    "I4 어떤 LLM 도 status 를 직접 쓰지 못한다. LLM 이 status 쓰기를 시도하면 거부한다(A4 차단 케이스).",
+    "I5 Evidence 와 Observation 은 상태를 갖지 않는다. 근거가 변하면 지식이 검증 불가능해진다."
+  ]
+}
