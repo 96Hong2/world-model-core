@@ -1,0 +1,573 @@
+/* 도면. 읽는 면(브리프)과 일부러 다른 표면으로 만든다.
+ * 한 단 눌러 앉힌 바탕 + 격자 + 얇은 선. 여기는 관계를 따라가는 자리다. */
+
+.board {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--board);
+}
+
+/* ------------------------------------------------------------ 도면 머리줄 */
+
+/* 한 줄로 얇게. 개선 전에는 설명문 두 줄 + 범례 세 줄이 194px 을 먹었다. */
+.board-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 34px;
+  padding: 0 var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.board-title {
+  font-size: var(--fs-sm);
+  font-weight: 620;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.board-stat {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.board-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.board-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+}
+
+.board-empty strong {
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+/* 전체화면. 레일까지 덮는다. */
+.board[data-full="true"] {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+}
+
+/* ------------------------------------------------------------ 범례 */
+
+/* 평소에는 한 줄. 자세한 뜻은 눌러서 펼친다. */
+.legend {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.legend-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  overflow: hidden;
+}
+
+/* 좁은 화면에서는 계열 칩을 접고 「범례」 버튼만 남긴다. 잘린 글자("사건·사")를 보여주는
+ * 것보다 아예 감추고 눌러서 보게 하는 쪽이 낫다. */
+@media (max-width: 1499px) {
+  .legend-line {
+    display: none;
+  }
+}
+
+/* 미니 도면은 폭이 좁아 항상 접는다. */
+.mini-board .legend-line {
+  display: none;
+}
+
+.legend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.legend-more {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.legend-more:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+
+.legend-panel {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  left: 0;
+  z-index: var(--z-sticky);
+  width: min(30rem, calc(100vw - var(--rail-w) - var(--sp-6)));
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-2);
+}
+
+.legend-group + .legend-group {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+.legend-group h3 {
+  margin-bottom: var(--sp-2);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--sp-2) var(--sp-3);
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+}
+
+.legend-sample {
+  flex: none;
+  width: 26px;
+  height: 0;
+  border-top: 2px solid var(--ink-3);
+}
+
+.legend-sample[data-kind="dashed"] {
+  border-top-style: dashed;
+}
+
+.legend-sample[data-kind="critical"] {
+  border-top-color: var(--critical);
+  border-top-width: 2.5px;
+}
+
+.legend-sample[data-kind="conflict"] {
+  border-top: 0;
+  height: 5px;
+  border-top: 1.5px solid var(--conflict);
+  border-bottom: 1.5px solid var(--conflict);
+}
+
+.legend-box {
+  flex: none;
+  border: 1.5px solid var(--ink-3);
+  border-radius: 3px;
+}
+
+.legend-note {
+  margin-top: var(--sp-3);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------ 노드 */
+
+.gnode {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  height: 100%;
+  padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-2);
+  border: 1px solid var(--line-strong);
+  /* 왼쪽 세로 띠가 종류를 알린다. 판 자체는 중성색이라 무지개가 안 된다. */
+  border-left: 4px solid var(--type-color);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  transition:
+    opacity var(--t-state) var(--ease-out),
+    border-color var(--t-press) var(--ease-out),
+    box-shadow var(--t-press) var(--ease-out);
+}
+
+.gnode .icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  background: var(--paper-sunk);
+  color: var(--type-color);
+}
+
+.gnode .txt {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* 종류는 분류표다. 라벨보다 작아도 된다. */
+.gnode .type {
+  color: var(--ink-3);
+  font-size: var(--fs-node-type);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 라벨은 읽을 수 있어야 한다. 실측 11px 이 §3 의 "읽기 어려움" 원인이었다. */
+.gnode .label {
+  color: var(--ink);
+  font-size: var(--fs-node);
+  line-height: 1.32;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gnode.rank-focal {
+  border-color: var(--accent);
+  border-width: 1.5px;
+  border-left-width: 5px;
+  box-shadow: var(--shadow-2);
+}
+
+.gnode.rank-focal .label {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.gnode.rank-supporting {
+  background: var(--paper-sunk);
+  box-shadow: none;
+}
+
+.gnode.rank-supporting .label {
+  color: var(--ink-2);
+}
+
+.gnode:hover {
+  border-color: var(--accent);
+}
+
+.gnode.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    var(--shadow-1);
+}
+
+.gnode.hl {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    var(--shadow-1);
+}
+
+.gnode.dim {
+  opacity: 0.34;
+}
+
+/* 펼침 애니메이션에서 아직 차례가 아닌 노드 */
+.gnode.unrevealed {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 상태는 색만으로 알리지 않는다. 오른쪽 위에 형태로도 찍는다. */
+.gnode.status-CRITICAL {
+  border-color: var(--critical);
+}
+
+.gnode.status-DISPUTED {
+  border-color: var(--conflict);
+}
+
+.status-dot {
+  position: absolute;
+  top: -5px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--paper);
+  border-radius: 50%;
+  background: var(--unknown);
+}
+
+.status-dot[data-status="CRITICAL"] {
+  background: var(--critical);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.status-dot[data-status="DISPUTED"] {
+  background: var(--conflict);
+}
+
+.status-dot[data-status="VERIFIED"] {
+  background: var(--verified);
+}
+
+.status-dot[data-status="CANDIDATE"],
+.status-dot[data-status="UNVERIFIED"] {
+  background: var(--paper);
+  border-color: var(--unknown);
+}
+
+/* 각주 번호. 노드가 답변의 몇 번 근거인지 알린다. */
+.markers {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  display: flex;
+  gap: 2px;
+}
+
+.markers b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1.5px var(--paper);
+}
+
+:root[data-theme="dark"] .markers b {
+  color: #14162b;
+}
+
+@media (prefers-color-scheme: dark) {
+  .markers b {
+    color: #14162b;
+  }
+}
+
+:root[data-theme="light"] .markers b {
+  color: #fff;
+}
+
+/* 1단계 더 펼치기 */
+.expand-btn {
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--t-press) var(--ease-out);
+}
+
+.gnode:hover .expand-btn,
+.gnode.selected .expand-btn,
+.expand-btn:focus-visible {
+  opacity: 1;
+}
+
+.expand-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.gnode-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------ 관계선 라벨 */
+
+/* 평소에는 안 보이고, 인용된 관계·강조된 관계·마우스 올린 관계만 보인다. */
+.edge-label {
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  background: var(--board);
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.edge-label.cited {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.edge-label.conflict {
+  background: var(--conflict-soft);
+  color: var(--conflict);
+}
+
+/* ------------------------------------------------------------ 도면 도구 */
+
+.board-tools {
+  position: absolute;
+  left: var(--sp-3);
+  right: 46px; /* 오른쪽 확대·축소 컨트롤을 피한다 */
+  bottom: var(--sp-3);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  pointer-events: none;
+}
+
+.board-tools > * {
+  pointer-events: auto;
+}
+
+.board-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 550;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition:
+    border-color var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out);
+}
+
+.board-tool:hover {
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+
+.board-tool svg {
+  width: 13px;
+  height: 13px;
+}
+
+.board-tool[data-icon-only] {
+  padding: 0;
+  width: 28px;
+  justify-content: center;
+}
+
+/* React Flow 기본 컨트롤을 우리 모양으로 맞춘다. */
+.react-flow__controls {
+  box-shadow: var(--shadow-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--paper);
+  fill: var(--ink-2);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--paper-sunk);
+  fill: var(--accent-ink);
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+/* ------------------------------------------------------------ 미니 도면 */
+
+/* Explore·Library·Changes 상세에 끼워 넣는 작은 도면 */
+.mini-board {
+  position: relative;
+  height: 300px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--board);
+  overflow: hidden;
+}
+
+.mini-board[data-tall="true"] {
+  height: 420px;
+}
+
+/* 안의 .board 에 높이를 물려준다. 이걸 빼면 머리줄만 나오고 캔버스가 0px 이 되어
+ * "노드 18개" 라고 적힌 빈 상자가 그려진다(실측: 대상 상세의 도면이 통째로 비어 있었다). */
+.mini-board > .board {
+  height: 100%;
+}

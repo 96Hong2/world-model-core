@@ -1,0 +1,1009 @@
+/* 둘러보기 · 서재 · 변경 · 상태. 목록과 상세를 함께 쓰는 화면들이라 규칙을 공유한다.
+ *
+ * KPI 카드를 늘어놓지 않는다. 여기서 세는 숫자는 "얼마나 알고 있나" 를 가늠하는 보조이고,
+ * 주역은 목록과 그 안의 관계다. */
+
+.browse {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 목록 + 상세 두 열. 목록만 있는 화면은 한 열로 둔다. */
+.browse-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 30%) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.browse-list {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.browse-main {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--ground);
+}
+
+.browse-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--ground);
+}
+
+/* ------------------------------------------------------------ 서재 두 열 */
+
+/* 왼쪽 폴더 트리 + 오른쪽 자료 목록. 트리 폭은 고정한다 — 종류 이름이 길어도 목록이
+ * 밀리지 않게. 좁은 화면에서는 트리를 위로 접어 가로 스크롤을 만들지 않는다. */
+.library {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+}
+
+.library-tree {
+  border-right: 1px solid var(--line);
+  background: var(--paper);
+  padding: var(--sp-3) var(--sp-2);
+  overflow-y: auto;
+}
+
+.library-where {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4) 0;
+  font-size: var(--fs-sm);
+  color: var(--ink-1);
+}
+
+@media (max-width: 900px) {
+  .library {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .library-tree {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    max-height: 12rem;
+  }
+}
+
+/* 폴더 트리. 상자·색을 쓰지 않고 들여쓰기와 굵기로만 계층을 만든다. */
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tree-line {
+  display: flex;
+  align-items: stretch;
+}
+
+.tree-caret-btn {
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  border-radius: var(--r-sm);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+
+.tree-caret-btn:hover {
+  background: var(--paper-sunk);
+  color: var(--ink-1);
+}
+
+.tree-caret {
+  display: inline-flex;
+  width: 14px;
+  flex: none;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.tree-caret[data-open="true"] {
+  transform: rotate(90deg);
+}
+
+/* 테두리·배경을 주지 않는다. 계층은 들여쓰기와 굵기로만 만든다.
+ * 브라우저 기본 button 테두리가 남으면 트리 한 줄 한 줄이 상자로 보인다. */
+.tree-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 5px var(--sp-2);
+  border: 0;
+  background: none;
+  border-radius: var(--r-sm);
+  text-align: left;
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.tree-row[data-depth="0"] {
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.tree-row[data-depth="2"] {
+  padding-left: 22px;
+  font-size: var(--fs-xs);
+}
+
+.tree-row:hover {
+  background: var(--paper-sunk);
+  color: var(--ink-1);
+}
+
+.tree-row[aria-current] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-count {
+  flex: none;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.tree-row[aria-current] .tree-count {
+  color: var(--accent-ink);
+}
+
+.browse-inner {
+  max-width: 76rem;
+  padding: var(--sp-5);
+}
+
+.browse-inner[data-narrow="true"] {
+  max-width: 52rem;
+}
+
+/* ------------------------------------------------------------ 도구 줄 */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1;
+  min-width: 12rem;
+  max-width: 26rem;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--ground);
+  color: var(--ink-3);
+}
+
+.search:focus-within {
+  border-color: var(--accent);
+  background: var(--paper);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+  outline: none;
+}
+
+.search svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/* 필터. 칩을 남발하지 않고 고른 것만 색이 든다. */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.filter {
+  padding: 3px var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition:
+    border-color var(--t-press) var(--ease-out),
+    background var(--t-press) var(--ease-out);
+}
+
+.filter:hover {
+  border-color: var(--line-strong);
+}
+
+.filter[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.filter-count {
+  margin-left: 5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.select {
+  height: 30px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+/* ------------------------------------------------------------ 저장함 묶음 */
+
+/* 자동으로 쌓이는 것과 일부러 담은 것을 나눠 둔다. 상자로 감싸지 않고 제목과 여백으로만
+ * 가른다 — 카드를 둘 만들면 그 안의 목록이 또 카드처럼 보인다. */
+.bin + .bin {
+  margin-top: var(--sp-6);
+}
+
+.bin-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--sp-2);
+}
+
+.bin-head h2 {
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+.bin-empty {
+  padding: var(--sp-4) 0;
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+/* 담긴 상태는 색이 아니라 눌린 상태로 알린다. */
+.save-btn[data-on="true"] {
+  color: var(--accent-ink);
+}
+
+/* ------------------------------------------------------------ 목록 행 */
+
+.rows {
+  border-top: 1px solid var(--line-soft);
+}
+
+.rowitem {
+  display: block;
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--t-press) var(--ease-out),
+    border-left-color var(--t-press) var(--ease-out);
+}
+
+.rowitem:hover {
+  background: var(--paper-sunk);
+}
+
+.rowitem[aria-current="true"],
+.rowitem[data-active="true"] {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.rowitem-top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.rowitem-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowitem-sub {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.rowitem-type {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.rowitem-type i {
+  width: 3px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--type-color, var(--fam-knowledge));
+}
+
+/* ------------------------------------------------------------ 입구 카드 */
+
+/* 둘러보기 첫 화면의 진입 카드. KPI 카드가 아니라 "여기로 들어가라" 는 문이다. */
+.gates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.gate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--type-color, var(--fam-knowledge));
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--t-press) var(--ease-out),
+    box-shadow var(--t-press) var(--ease-out);
+}
+
+.gate:hover {
+  box-shadow: var(--shadow-1);
+  border-color: var(--line-strong);
+}
+
+.gate-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--type-color, var(--ink-2));
+}
+
+.gate-name {
+  color: var(--ink);
+  font-size: var(--fs-h2);
+  font-weight: 640;
+}
+
+.gate-count {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.gate-why {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+/* ------------------------------------------------------------ 사업영역 카드 */
+
+.domain-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.domain-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow var(--t-press) var(--ease-out);
+}
+
+.domain-card:hover {
+  box-shadow: var(--shadow-1);
+}
+
+.domain-card-name {
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 640;
+}
+
+.domain-card-nums {
+  display: flex;
+  gap: var(--sp-4);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.domain-card-nums b {
+  display: block;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 640;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 성숙도 막대. 5축 값을 눈으로 가늠하게 한다. */
+.maturity {
+  display: flex;
+  gap: 2px;
+}
+
+.maturity i {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--line);
+}
+
+.maturity i.on {
+  background: var(--accent);
+}
+
+/* ------------------------------------------------------------ 상세 */
+
+.detail-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.detail-crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.detail-crumb a {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.detail-crumb a:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+}
+
+.detail-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.detail-title h1 {
+  font-size: 24px;
+  letter-spacing: -0.024em;
+}
+
+.detail-lede {
+  max-width: 46rem;
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+.detail-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-2);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-6);
+  margin-top: var(--sp-5);
+}
+
+@media (max-width: 1279px) {
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-5);
+  }
+}
+
+.panel {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+}
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.panel-head h2 {
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+
+.section-block + .section-block {
+  margin-top: var(--sp-6);
+}
+
+.section-block > h2 {
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-h2);
+}
+
+/* 속성 표. 표를 두르지 않고 정의 목록으로 둔다. */
+.props {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) minmax(0, 1fr);
+  gap: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-sm);
+}
+
+.props dt {
+  color: var(--ink-3);
+}
+
+.props dd {
+  color: var(--ink);
+  word-break: break-word;
+}
+
+/* 관계 묶음 */
+.rel-group + .rel-group {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line-soft);
+}
+
+.rel-name {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.rel-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.rel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  text-decoration: none;
+  transition: border-color var(--t-press) var(--ease-out);
+}
+
+.rel-link:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.rel-link i {
+  width: 3px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--type-color, var(--fam-knowledge));
+}
+
+/* ------------------------------------------------------------ 변경 타임라인 */
+
+.timeline {
+  position: relative;
+  margin-top: var(--sp-4);
+  padding-left: var(--sp-5);
+}
+
+/* 시간축 한 줄. 항목마다 카드를 두르지 않는다. */
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--line);
+}
+
+.tl-item {
+  position: relative;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.tl-item::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--sp-5) * -1 + 2px);
+  top: 20px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--ground);
+}
+
+.tl-time {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+.tl-title {
+  margin-top: 2px;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+/* 무엇이 늘었나. + 는 새로 생긴 것, ~ 는 이미 있던 것에 근거가 붙은 것. */
+.deltas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--ink-2);
+}
+
+.delta-sign {
+  font-weight: 700;
+}
+
+.delta[data-kind="added"] .delta-sign {
+  color: var(--verified);
+}
+
+.delta[data-kind="touched"] .delta-sign {
+  color: var(--ink-3);
+}
+
+.delta b {
+  color: var(--ink);
+  font-weight: 640;
+}
+
+/* ------------------------------------------------------------ 변경 화면 */
+
+/* 이 화면이 무엇에 쓰는 것인지. 숫자보다 먼저 읽혀야 한다. */
+.page-why {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+}
+
+.now-title {
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--ink-1);
+}
+
+/* 지금 들어 있는 것. KPI 카드를 늘어놓지 않고 한 문장처럼 읽히게 잇는다. */
+.now {
+  margin-top: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.now-nums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.now-nums b {
+  color: var(--ink);
+  font-size: var(--fs-h2);
+  font-variant-numeric: tabular-nums;
+  margin-right: 3px;
+}
+
+/* 실행 타임라인. 상자를 만들지 않고 번호와 왼쪽 선으로만 순서를 보인다. */
+.runline {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+}
+
+.runstep {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.runstep-no {
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-full);
+  background: var(--paper-sunk);
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.runstep-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+.runstep-when {
+  color: var(--ink-3);
+  font-size: var(--fs-xs);
+}
+
+.runstep-what {
+  color: var(--ink-1);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+
+.run-id {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* 지원하지 않는 변경 종류를 정직하게 밝히는 자리 */
+.limits {
+  margin-top: var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--paper-sunk);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.limits h3 {
+  margin-bottom: var(--sp-1);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+}
+
+.limits li {
+  padding-left: var(--sp-3);
+  position: relative;
+}
+
+.limits li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------ 데이터 상태 */
+
+.health-group {
+  margin-top: var(--sp-5);
+}
+
+.health-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.health-group-head h2 {
+  font-size: var(--fs-h2);
+}
+
+.health-count {
+  color: var(--ink-3);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.health-why {
+  margin-top: var(--sp-2);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+/* ------------------------------------------------------------ 자료 미리보기 */
+
+.preview {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--paper-sunk);
+  overflow: hidden;
+}
+
+.preview-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.preview-row:last-child {
+  border-bottom: 0;
+}
+
+.preview-row[data-hit="true"] {
+  background: var(--accent-soft);
+}
+
+.preview-where {
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.preview-text {
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* ------------------------------------------------------------ 스켈레톤·빈 상태 */
+
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+}
+
+.skeleton-rows i {
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    90deg,
+    var(--line-soft) 0%,
+    var(--line) 50%,
+    var(--line-soft) 100%
+  );
+  background-size: 220% 100%;
+  animation: skeleton 1.6s linear infinite;
+}
+
+/* ------------------------------------------------------------ 좁은 화면 */
+
+@media (max-width: 1023px) {
+  .browse-split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .browse-list {
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 767px) {
+  .browse-inner {
+    padding: var(--sp-4);
+  }
+
+  .toolbar {
+    padding: var(--sp-2) var(--sp-3);
+  }
+}
