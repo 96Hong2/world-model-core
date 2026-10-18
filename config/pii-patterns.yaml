@@ -164,7 +164,7 @@ false_positive_guards:
     action: 탐지 제외
   - id: FP-DUMMY-INTERNAL-IP
     description: portal adoc 의 내부 IP 는 PII 가 아니라 민감정보다. 마스킹이 아니라 sensitivity=restricted 로 처리한다.
-    basis: "172.16.100.* / 192.168.0.* / 211.63.24.* — 9개 파일 합계 92건. operator_system_component.adoc 에 서버명·OS·IP·SSH 포트·계정 표가 있다."
+    basis: "사설 IP 두 대역과 공인 IP 한 대역, 9개 파일 합계 92건. operator_system_component.adoc 에 서버명·OS·IP·SSH 포트·계정 표가 있다."
     action: "PII 마스킹 대상 아님. sources.yaml 에서 해당 경로를 restricted 로 등록하고 1A 에 넣지 않는다."
 
 # --------------------------------------------------------------------------

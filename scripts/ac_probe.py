@@ -14,7 +14,7 @@ v1.0 에서 빠졌다). PRD §15 「MVP 수준 보안」의 "restricted Source �
                  라벨이 바뀌어 있으면 통과로 세지 않고 UNUSABLE 로 남긴다.
   2. 표지 검증   restricted 자료에**만** 있는 고유 문구를 표지(marker)로 쓴다. 고유성은 가정하지 않고
                  매 실행 때 Cypher 로 확인한다. 비 restricted Source 에도 있으면 그 표지는 버린다.
-                 (`설계매니저`·`172.16.100.1` 이 실제로 이 이유로 탈락했다.)
+                 (`설계매니저` 와 내부 IP 한 개가 실제로 이 이유로 탈락했다.)
   3. 질의        데모 계정으로 POST /ask. 같은 질문을 viewer(restricted 제외 정책) 로도 던져 대조한다.
   4. 판독        응답 payload 에서 두 가지를 본다.
                    · 표지 문구가 payload 에 있는가        (범위 = 하드 게이트와 동일한 full_payload_text)
